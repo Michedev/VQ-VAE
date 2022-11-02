@@ -1,0 +1,19 @@
+defaults:
+  - model: ??? # <--- Fill this in
+  - dataset: mnist
+  - optional model_dataset: ${model}-${dataset}
+
+batch_size: 32
+accelerator: null  # from pytorch-lightning, the hardware platform used to train the neural network
+devices: null  # the devices to use in a given hardware platform (see argument above)
+gradient_clip_val: 0.0  # gradient clip value - set to 0.0 to disable
+gradient_clip_algorithm: norm  # gradient clip algorithm - either 'norm' or 'value'
+early_stop: true  # stop training if the validation loss does not improve for patience epochs
+patience: 10  # early stopping patience; set to -1 to disable
+min_delta: 0.0  # minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute change of less than min_delta, will count as no improvement.
+ckpt: null  # path to checkpoint
+seed: 1337  # random seed
+
+hydra:
+  run:
+    dir: saved_models/${now:%Y_%m_%d_%H_%M_%S}  # where run train.py it will create under {current working directory}/saved_models a folder with the current date and time and it will be setted as new cwd

@@ -1,0 +1,8 @@
+checkpoint_path: ???
+batch_size: 64
+device: null  # null means use the training device
+use_ckpt_code: false # todo: implement this feature
+
+hydra:
+  run:
+    dir: ./
