@@ -1,7 +1,7 @@
 defaults:
-  - model: ??? # <--- Fill this in
+  - model: vqvae # <--- Fill this in
   - dataset: mnist
-  - optional model_dataset: ${model}-${dataset}
+  - optional ovv model_dataset: ${model}-${dataset}
 
 batch_size: 32
 accelerator: null  # from pytorch-lightning, the hardware platform used to train the neural network

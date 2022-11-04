@@ -1,6 +1,6 @@
 from typing import Iterator, Tuple
 from path import Path
-from deep_learning_template.utils.paths import SAVED_MODELS
+from vq_vae.utils.paths import SAVED_MODELS
 from omegaconf import DictConfig, OmegaConf
 import pytorch_lightning as pl
 import hydra

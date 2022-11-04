@@ -1,0 +1,12 @@
+_target_: vq_vae.model.vqvae.VQVAE
+latent_size: 32
+embedding_size: 64
+beta: 0.25
+encoder:
+  _target_: vq_vae.model.vqvae.sequential_encoder
+  input_channels: ${dataset.channels}
+  output_channels: ${model.embedding_size}
+decoder:
+  _target_: vq_vae.model.vqvae.sequential_decoder
+  input_channels: ${model.embedding_size}
+  output_channels: ${dataset.channels}

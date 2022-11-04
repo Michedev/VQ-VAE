@@ -2,17 +2,18 @@ import hydra
 import pkg_resources
 from omegaconf import DictConfig, OmegaConf
 from path import Path
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ModelSummary
 
 from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
 import omegaconf
 import os
-from deep_learning_template.utils.paths import CODE_MODEL
+from vq_vae.utils.paths import CODE_MODEL
 
 
-@hydra.main(pkg_resources.resource_filename("deep_learning_template", 'config'), 'train.yaml')
+@hydra.main(pkg_resources.resource_filename("vq_vae", 'config'), 'train.yaml')
 def train(config: DictConfig):
+    print('config', OmegaConf.to_yaml(config), sep='\n')
     ckpt = None
     pl.seed_everything(config.seed)
     if config.ckpt is not None:
@@ -23,8 +24,8 @@ def train(config: DictConfig):
     with open('config.yaml', 'w') as f:
         omegaconf.OmegaConf.save(config, f)
     model: pl.LightningModule = hydra.utils.instantiate(config.model)
-    train_dataset: Dataset = hydra.utils.instantiate(config.dataset.train)
-    val_dataset: Dataset = hydra.utils.instantiate(config.dataset.val)
+    train_dataset: Dataset = hydra.utils.instantiate(config.dataset.instance, train=True)
+    val_dataset: Dataset = hydra.utils.instantiate(config.dataset.instance, train=False)
 
     CODE_MODEL.copytree('model')  # copy source code of model under experiment directory
 
