@@ -1,5 +1,5 @@
 _target_: vq_vae.model.vqvae.VQVAE
-latent_size: 32
+latent_size: 150
 embedding_size: 64
 beta: 0.25
 encoder:

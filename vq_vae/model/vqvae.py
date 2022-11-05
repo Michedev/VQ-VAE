@@ -1,11 +1,9 @@
-from typing import Tuple, List
-from math import prod
+from typing import Any
 
 import pytorch_lightning as pl
-import torch
-from torch import nn
 import tensorguard as tg
-import torch.distributions as dist
+import torch
+from torch import nn, autograd
 
 
 def sequential_encoder(input_channels: int, output_channels: int):
@@ -32,8 +30,6 @@ def sequential_decoder(input_channels: int, output_channels: int):
         nn.ReLU(),
         nn.ConvTranspose2d(32, 32, kernel_size=5),
         nn.ReLU(),
-        nn.ConvTranspose2d(32, 32, kernel_size=5),
-        nn.ReLU(),
         nn.ConvTranspose2d(32, output_channels, kernel_size=6),
     )
     for m in x.modules():
@@ -41,41 +37,64 @@ def sequential_decoder(input_channels: int, output_channels: int):
     return x
 
 
-def quantize(e, w_embedding):
-    """
-    Quantize the embedding
+class VectorQuantizer(autograd.Function):
 
-    >>> w = torch.tensor([[1, 2, 3], [4, 5, 6]]).float() # 2 x 3
-    >>> e = torch.zeros(32, 15, 3).float()
-    >>> result = quantize(e, w)
-    >>> result.shape
-    torch.Size([32, 15, 3])
-    >>> (result.sum().item() == 6 * 15 * 32)
-    True
-    >>> e = torch.zeros(2, 4, 3)
-    >>> e[1] += 5
-    >>> result = quantize(e, w)
-    >>> (result[0].sum().item() == 4 * 6)
-    True
-    >>> (result[1].sum().item() == 4 * 15)
-    True
+    @staticmethod
+    def forward(ctx: Any, e, w_embedding) -> Any:
+        """
+        Quantize the embedding
 
-    @param e: the embedding tensor with shape (batch_size, length, embedding_dim)
-    @param w_embedding: the embedding dictionary with shape (num_embeddings, embedding_dim)
+        >>> w = torch.tensor([[1, 2, 3], [4, 5, 6]]).float() # 2 x 3
+        >>> e = torch.zeros(32, 15, 3).float()
+        >>> result = VectorQuantizer.apply(e, w)
+        >>> result.shape
+        torch.Size([32, 15, 3])
+        >>> (result.sum().item() == 6 * 15 * 32)
+        True
+        >>> e = torch.zeros(2, 4, 3)
+        >>> e[1] += 5
+        >>> result = VectorQuantizer.apply(e, w)
+        >>> (result[0].sum().item() == 4 * 6)
+        True
+        >>> (result[1].sum().item() == 4 * 15)
+        True
 
-    @return the quantized embedding
-    """
-    B = e.shape[0]  # batch size
-    E = w_embedding.shape[-1]  # embedding size
-    with torch.no_grad():
-        # e: B, LS, ES
-        # w_embedding: LS, ES
-        # dist: B, LS, LS
-        dist = torch.cdist(e, w_embedding)
-        # min_dist: B, LS
-        i_min = torch.argmin(dist, dim=-1)
-    result = w_embedding.unsqueeze(0).expand(B, -1, -1).gather(dim=1, index=i_min.unsqueeze(-1).expand(-1, -1, E))
-    return result
+        @param e: the embedding tensor with shape (batch_size, length, embedding_dim)
+        @param w_embedding: the embedding dictionary with shape (num_embeddings, embedding_dim)
+
+        @return the quantized embedding
+        """
+        B = e.shape[0]  # batch size
+        E = w_embedding.shape[-1]  # embedding size
+        with torch.no_grad():
+            # e: B, LS, ES
+            # w_embedding: LS, ES
+            # dist: B, LS, LS
+            dist = torch.cdist(e, w_embedding)
+            # min_dist: B, LS
+            i_min = torch.argmin(dist, dim=-1)
+        ctx.save_for_backward(e, w_embedding, i_min)
+        result = w_embedding.unsqueeze(0).expand(B, -1, -1).gather(dim=1, index=i_min.unsqueeze(-1).expand(-1, -1, E))
+        return result
+
+    @staticmethod
+    def backward(ctx: Any, grad_output) -> Any:
+        grad_e = None
+        grad_w_embedding = None
+        if ctx.needs_input_grad[0]:
+            grad_e = grad_output.clone()
+        if ctx.needs_input_grad[1]:
+            e, w_embedding, i_min = ctx.saved_tensors
+            # print('============================')
+            # print(f'{e.shape=}, {w_embedding.shape=}, {i_min.shape=}, {grad_output.shape=}')
+            # print('============================')
+            grad_w_embedding = torch.zeros_like(w_embedding)
+            grad_w_embedding.index_add_(dim=0, index=i_min.view(-1),
+                                        source=grad_output.reshape(-1, grad_output.shape[-1]))
+        return grad_e, grad_w_embedding
+
+
+quantize = VectorQuantizer.apply
 
 
 class VQVAE(pl.LightningModule):
@@ -86,7 +105,7 @@ class VQVAE(pl.LightningModule):
         self.encoder = encoder
         self.decoder = decoder
         self.beta = beta
-        self.mse = nn.MSELoss()
+        self.mse = nn.MSELoss(reduction='none')
         self.latent_size = latent_size
         self.embedding_size = embedding_size
         self.register_parameter('w_embedding', nn.Parameter(torch.randn(latent_size, embedding_size)))
@@ -101,10 +120,11 @@ class VQVAE(pl.LightningModule):
         e = e.flatten(start_dim=2)
         e = e.permute(0, 2, 1)
         e_quantized = quantize(e, self.w_embedding)
-        e_quantized = e_quantized.permute(0, 2, 1)
-        e_quantized = e_quantized.reshape(-1, self.embedding_size, w_e, h_e)
-        x_recon = self.decoder(e_quantized)
-        return dict(x_recon=x_recon, e_quantized=e_quantized, e=e)
+        e_quantized_reshaped = e_quantized.permute(0, 2, 1)
+        e_quantized_reshaped = e_quantized_reshaped.reshape(-1, self.embedding_size, w_e, h_e)
+        x_recon = self.decoder(e_quantized_reshaped)
+        return dict(x_recon=x_recon, e_quantized=e_quantized,
+                    e=e, e_quantized_reshaped=e_quantized_reshaped)
 
     def training_step(self, batch, batch_idx):
         x, _ = batch
@@ -113,13 +133,55 @@ class VQVAE(pl.LightningModule):
         e = result['e']
         e_quantized = result['e_quantized']
         loss_dict = self.calc_loss(x, x_recon, e, e_quantized)
+        # self._print_grad(loss_dict)
 
+        if self.global_step % 1_000 == 0:
+            self.log_train(loss_dict, result)
         return loss_dict
 
+    def _print_grad(self, loss_dict):
+        old_value = self.automatic_optimization
+        self.automatic_optimization = False
+        self.manual_backward(loss_dict['loss'])
+        print('encoder')
+        for m in self.encoder.modules():
+            if isinstance(m, nn.Conv2d):
+                print('gradients')
+                wgrad = m.weight.grad
+                bgrad = m.bias.grad
+                print('\tweight is na =', wgrad is None)
+                print('\tbias is na =', bgrad is None)
+                if not wgrad is None:
+                    print('\tmean weight grad =', wgrad.mean().item())
+                if not bgrad is None:
+                    print('\tmean bias grad =', bgrad.mean().item())
+        print('decoder')
+        for m in self.decoder.modules():
+            if isinstance(m, nn.ConvTranspose2d):
+                print('gradients')
+                wgrad = m.weight.grad
+                bgrad = m.bias.grad
+                print('\tweight is na =', wgrad is None)
+                print('\tbias is na =', bgrad is None)
+                if not wgrad is None:
+                    print('\tmean weight grad =', wgrad.mean().item())
+                if not bgrad is None:
+                    print('\tmean bias grad =', bgrad.mean().item())
+
+        self.automatic_optimization = old_value
+
+    def log_train(self, loss_dict, forward_result: dict):
+        x_recon = forward_result['x_recon']
+        self.logger.experiment.add_images('x_recon', x_recon, self.global_step)
+        self.log('train/loss', loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
+        self.log('train/recon_loss', loss_dict['recon_loss'], on_step=True, on_epoch=True, prog_bar=True)
+        self.log('train/embedding_loss', loss_dict['embedding_loss'], on_step=True, on_epoch=True, prog_bar=True)
+        self.log('train/commit_loss', loss_dict['commit_loss'], on_step=True, on_epoch=True, prog_bar=True)
+
     def calc_loss(self, x, x_recon, e, e_quantized) -> dict:
-        recon_loss = self.mse(x_recon, x)
-        embedding_loss = self.mse(e_quantized, e.detach())
-        commit_loss = self.beta * self.mse(e_quantized.detach(), e)
+        recon_loss = self.mse(x_recon, x).mean(dim=0).sum()
+        embedding_loss = self.mse(e_quantized, e.detach()).mean(dim=0).sum()
+        commit_loss = self.beta * self.mse(e_quantized.detach(), e).mean(dim=0).sum()
         return dict(loss=recon_loss + embedding_loss + commit_loss,
                     recon_loss=recon_loss, embedding_loss=embedding_loss,
                     commit_loss=commit_loss)
@@ -127,15 +189,18 @@ class VQVAE(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, _ = batch
         tg.guard(x, "*, C, W, H")
-        result = self(x)
-        x_recon = result['x_recon']
-        e = result['e']
-        e_quantized = result['e_quantized']
-
+        forward_result = self(x)
+        x_recon = forward_result['x_recon']
+        e = forward_result['e']
+        e_quantized = forward_result['e_quantized']
+        tg.guard(self.w_embedding, "LS, ES")
         tg.guard(x_recon, "*, C, W, H")
+        tg.guard(e, "*, L1, ES")
+        tg.guard(e_quantized, "*, L1, ES")
 
         loss_dict = self.calc_loss(x, x_recon, e, e_quantized)
-        return loss_dict
+        result = {**loss_dict, **forward_result}
+        return result
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)

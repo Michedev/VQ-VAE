@@ -1,5 +1,5 @@
 defaults:
-  - model: vqvae # <--- Fill this in
+  - model: vqvae
   - dataset: mnist
   - optional ovv model_dataset: ${model}-${dataset}
 
