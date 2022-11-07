@@ -67,7 +67,7 @@ downloads:
 packages:
 - pytorch
 - torchvision
-- cudatoolkit=11.3
+- pytorch-cuda=11.7
 - pip:
   - pytorch-lightning
   - path
@@ -79,6 +79,7 @@ packages:
 - matplotlib
 channels:
 - pytorch
+- nvidia
 
 #
 #  cudatoolskit=11.3 is not available for osx-64

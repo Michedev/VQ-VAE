@@ -4,8 +4,8 @@ defaults:
   - optional ovv model_dataset: ${model}-${dataset}
 
 batch_size: 32
-accelerator: null  # from pytorch-lightning, the hardware platform used to train the neural network
-devices: null  # the devices to use in a given hardware platform (see argument above)
+accelerator: null  # from pytorch-lightning, the hardware platform used to train the neural network. Can be "cpu", "gpu", or "tpu"
+devices: null  # the devices to use in a given hardware platform (see argument above). Can be a list of integers, or a single integer
 gradient_clip_val: 0.0  # gradient clip value - set to 0.0 to disable
 gradient_clip_algorithm: norm  # gradient clip algorithm - either 'norm' or 'value'
 early_stop: true  # stop training if the validation loss does not improve for patience epochs

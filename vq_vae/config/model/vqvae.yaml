@@ -1,6 +1,7 @@
 _target_: vq_vae.model.vqvae.VQVAE
 latent_size: 150
 embedding_size: 64
+debug: false
 beta: 0.25
 encoder:
   _target_: vq_vae.model.vqvae.sequential_encoder

@@ -9,12 +9,16 @@ from torch import nn, autograd
 def sequential_encoder(input_channels: int, output_channels: int):
     return nn.Sequential(
         nn.Conv2d(input_channels, 32, kernel_size=5, padding=2),
+        nn.GroupNorm(1, 32),
         nn.ReLU(),
         nn.Conv2d(32, 32, kernel_size=5, padding=2, stride=2),
+        nn.GroupNorm(1, 32),
         nn.ReLU(),
         nn.Conv2d(32, 32, kernel_size=5, padding=2),
+        nn.GroupNorm(1, 32),
         nn.ReLU(),
         nn.Conv2d(32, 32, kernel_size=5, padding=2, stride=2),
+        nn.GroupNorm(1, 32),
         nn.ReLU(),
         nn.Conv2d(32, output_channels, kernel_size=5, padding=2),
     )
@@ -23,12 +27,16 @@ def sequential_encoder(input_channels: int, output_channels: int):
 def sequential_decoder(input_channels: int, output_channels: int):
     x = nn.Sequential(
         nn.ConvTranspose2d(input_channels, 32, kernel_size=5),
+        nn.GroupNorm(1, 32),
         nn.ReLU(),
         nn.ConvTranspose2d(32, 32, kernel_size=5),
+        nn.GroupNorm(1, 32),
         nn.ReLU(),
         nn.ConvTranspose2d(32, 32, kernel_size=5),
+        nn.GroupNorm(1, 32),
         nn.ReLU(),
         nn.ConvTranspose2d(32, 32, kernel_size=5),
+        nn.GroupNorm(1, 32),
         nn.ReLU(),
         nn.ConvTranspose2d(32, output_channels, kernel_size=6),
     )
@@ -88,9 +96,14 @@ class VectorQuantizer(autograd.Function):
             # print('============================')
             # print(f'{e.shape=}, {w_embedding.shape=}, {i_min.shape=}, {grad_output.shape=}')
             # print('============================')
-            grad_w_embedding = torch.zeros_like(w_embedding)
-            grad_w_embedding.index_add_(dim=0, index=i_min.view(-1),
-                                        source=grad_output.reshape(-1, grad_output.shape[-1]))
+            grad_w_embedding: torch.Tensor = torch.zeros_like(w_embedding)
+            # grad_div: torch.Tensor = torch.zeros_like(w_embedding)
+            #
+            embedding_size = grad_output.shape[-1]
+            grad_output_flatten = grad_output.contiguous().view(-1, embedding_size)
+            grad_w_embedding = grad_w_embedding.index_add(dim=0, index=i_min.view(-1),
+                                                          source=- grad_output_flatten)
+
         return grad_e, grad_w_embedding
 
 
@@ -100,7 +113,7 @@ quantize = VectorQuantizer.apply
 class VQVAE(pl.LightningModule):
 
     def __init__(self, encoder, decoder, beta: float, latent_size: int,
-                 embedding_size: int):
+                 embedding_size: int, debug: bool = False):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
@@ -110,9 +123,10 @@ class VQVAE(pl.LightningModule):
         self.embedding_size = embedding_size
         self.register_parameter('w_embedding', nn.Parameter(torch.randn(latent_size, embedding_size)))
         tg.set_dim('LS', self.latent_size)
+        self.debug = debug
         tg.set_dim('ES', embedding_size)
         with torch.no_grad():
-            self.w_embedding *= 0.02  # init with normal(0, 0.02)
+            nn.init.xavier_normal_(self.w_embedding)
 
     def forward(self, x):
         e = self.encoder(x)
@@ -133,10 +147,11 @@ class VQVAE(pl.LightningModule):
         e = result['e']
         e_quantized = result['e_quantized']
         loss_dict = self.calc_loss(x, x_recon, e, e_quantized)
-        # self._print_grad(loss_dict)
+        if self.debug:
+            self._print_grad(loss_dict)
 
         if self.global_step % 1_000 == 0:
-            self.log_train(loss_dict, result)
+            self.log_metrics(loss_dict, result)
         return loss_dict
 
     def _print_grad(self, loss_dict):
@@ -146,48 +161,56 @@ class VQVAE(pl.LightningModule):
         print('encoder')
         for m in self.encoder.modules():
             if isinstance(m, nn.Conv2d):
-                print('gradients')
+                print('\tgradients')
                 wgrad = m.weight.grad
                 bgrad = m.bias.grad
-                print('\tweight is na =', wgrad is None)
-                print('\tbias is na =', bgrad is None)
+                print('\t\tweight is na =', wgrad is None)
+                print('\t\tbias is na =', bgrad is None)
                 if not wgrad is None:
-                    print('\tmean weight grad =', wgrad.mean().item())
+                    print('\t\tmean weight grad =', wgrad.mean().item())
                 if not bgrad is None:
-                    print('\tmean bias grad =', bgrad.mean().item())
+                    print('\t\tmean bias grad =', bgrad.mean().item())
         print('decoder')
         for m in self.decoder.modules():
             if isinstance(m, nn.ConvTranspose2d):
-                print('gradients')
+                print('\tgradients')
                 wgrad = m.weight.grad
                 bgrad = m.bias.grad
-                print('\tweight is na =', wgrad is None)
-                print('\tbias is na =', bgrad is None)
+                print('\t\tweight is na =', wgrad is None)
+                print('\t\tbias is na =', bgrad is None)
                 if not wgrad is None:
-                    print('\tmean weight grad =', wgrad.mean().item())
+                    print('\t\tmean weight grad =', wgrad.mean().item())
                 if not bgrad is None:
-                    print('\tmean bias grad =', bgrad.mean().item())
+                    print('\t\tmean bias grad =', bgrad.mean().item())
 
         self.automatic_optimization = old_value
+        self.zero_grad(set_to_none=True)
 
-    def log_train(self, loss_dict, forward_result: dict):
+    def log_metrics(self, loss_dict, forward_result: dict, dataset_split='train'):
         x_recon = forward_result['x_recon']
         self.logger.experiment.add_images('x_recon', x_recon, self.global_step)
-        self.log('train/loss', loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
-        self.log('train/recon_loss', loss_dict['recon_loss'], on_step=True, on_epoch=True, prog_bar=True)
-        self.log('train/embedding_loss', loss_dict['embedding_loss'], on_step=True, on_epoch=True, prog_bar=True)
-        self.log('train/commit_loss', loss_dict['commit_loss'], on_step=True, on_epoch=True, prog_bar=True)
+        self.log('%s/loss' % dataset_split, loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
+        self.log('%s/recon_loss' % dataset_split, loss_dict['recon_loss'], on_step=True, on_epoch=True, prog_bar=True)
+        self.log('%s/embedding_loss' % dataset_split, loss_dict['embedding_loss'], on_step=True, on_epoch=True, prog_bar=True)
+        self.log('%s/commit_loss' % dataset_split, loss_dict['commit_loss'], on_step=True, on_epoch=True, prog_bar=True)
 
     def calc_loss(self, x, x_recon, e, e_quantized) -> dict:
         recon_loss = self.mse(x_recon, x).mean(dim=0).sum()
-        embedding_loss = self.mse(e_quantized, e.detach()).mean(dim=0).sum()
-        commit_loss = self.beta * self.mse(e_quantized.detach(), e).mean(dim=0).sum()
+        embedding_loss = self.mse(e_quantized, e.detach()).mean()
+        commit_loss = self.beta * self.mse(e_quantized.detach(), e).mean()
+        if self.debug:
+            with torch.no_grad():
+                print(f'{recon_loss=}, {embedding_loss=}, {commit_loss=}')
+                print(f'{e.mean().item()=}, {e.std().item()=}, {e_quantized.mean().item()=}, {e_quantized.std().item()=}')
         return dict(loss=recon_loss + embedding_loss + commit_loss,
                     recon_loss=recon_loss, embedding_loss=embedding_loss,
                     commit_loss=commit_loss)
 
     def validation_step(self, batch, batch_idx):
         x, _ = batch
+        if self.debug:
+            with torch.no_grad():
+                print(f'{x.mean().item()=}, {x.std().item()=}')
         tg.guard(x, "*, C, W, H")
         forward_result = self(x)
         x_recon = forward_result['x_recon']
@@ -199,9 +222,10 @@ class VQVAE(pl.LightningModule):
         tg.guard(e_quantized, "*, L1, ES")
 
         loss_dict = self.calc_loss(x, x_recon, e, e_quantized)
+        self.log_metrics(loss_dict, forward_result, dataset_split='valid')
         result = {**loss_dict, **forward_result}
         return result
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
         return optimizer

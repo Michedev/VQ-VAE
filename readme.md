@@ -20,22 +20,16 @@ git clone https://github.com/Michedev/deep-learning-template.git
 2. Install [anaconda](https://www.anaconda.com/) if you don't have it
 
 
-3. Open your terminal with the anaconda environment enabled in the project folder
-
-4. Install dependencies
-
-
-```bash
-anaconda-project prepare
-```
 
 ## Train
 
 Train your model
 
 ```bash
-anaconda-project run train
+anaconda-project run train-gpu
 ```
+
+_Note: First time will download and install all dependencies_
 
 You can also specify additional arguments according to `deep_learning_template/config/train.yaml` like
 

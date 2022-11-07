@@ -35,11 +35,11 @@ def train(config: DictConfig):
     train_dl = DataLoader(train_dataset, batch_size=config.batch_size, pin_memory=pin_memory)
     val_dl = DataLoader(val_dataset, batch_size=config.batch_size, pin_memory=pin_memory)
     ckpt_callback = ModelCheckpoint('./', 'best',
-                                    monitor='loss/valid_loss_epoch',
+                                    monitor='valid/loss_epoch',
                                     auto_insert_metric_name=False, save_last=True)
     callbacks = [ckpt_callback]
     if config.early_stop:
-        callbacks.append(EarlyStopping('loss/valid_loss_epoch', min_delta=config.min_delta,
+        callbacks.append(EarlyStopping('valid/loss_epoch', min_delta=config.min_delta,
                                        patience=config.patience))
     trainer = pl.Trainer(callbacks=callbacks, accelerator=config.accelerator, devices=config.devices,
                          gradient_clip_val=config.gradient_clip_val,
