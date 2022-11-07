@@ -25,10 +25,10 @@ description:
 #
 commands:
   train-gpu:
-    unix: python ./train.py accelerator=gpu devices=1
+    unix: python train.py accelerator=gpu devices=1
     env_spec: default
   train-cpu:
-    unix: python ./train.py accelerator=cpu
+    unix: python train.py accelerator=cpu
     env_spec: default
   compress-runs:
     unix: compress-runs = "tar cfz saved_models.tar.gz saved_models/"
@@ -86,7 +86,6 @@ platforms:
 - win-64
 
 variables:
-  PYTHONPATH: ./
   HYDRA_FULL_ERROR: 1
 #
 # You can define multiple, named environment specs.
