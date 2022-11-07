@@ -11,7 +11,7 @@ import os
 from utils.paths import CODE_MODEL
 
 
-@hydra.main(pkg_resources.resource_filename("vq_vae", 'config'), 'train.yaml')
+@hydra.main(pkg_resources.resource_filename('config'), 'train.yaml')
 def train(config: DictConfig):
     print('config', OmegaConf.to_yaml(config), sep='\n')
     ckpt = None
