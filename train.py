@@ -8,10 +8,10 @@ from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
 import omegaconf
 import os
-from utils.paths import CODE_MODEL
+from utils.paths import CODE_MODEL, ROOT
 
 
-@hydra.main(pkg_resources.resource_filename('config'), 'train.yaml')
+@hydra.main(ROOT / 'config', 'train.yaml')
 def train(config: DictConfig):
     print('config', OmegaConf.to_yaml(config), sep='\n')
     ckpt = None
