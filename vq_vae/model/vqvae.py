@@ -218,6 +218,7 @@ class VQVAE(pl.LightningModule):
                 print(f'{x.mean().item()=}, {x.std().item()=}')
         tg.guard(x, "*, C, W, H")
         forward_result = self(x)
+        forward_result['x'] = x
         x_recon = forward_result['x_recon']
         e = forward_result['e']
         e_quantized = forward_result['e_quantized']
