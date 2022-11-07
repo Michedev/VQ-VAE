@@ -67,7 +67,6 @@ downloads:
 packages:
 - pytorch
 - torchvision
-- pytorch-cuda=11.7
 - pip:
   - pytorch-lightning
   - path
@@ -79,7 +78,6 @@ packages:
 - matplotlib
 channels:
 - pytorch
-- nvidia
 
 #
 #  cudatoolskit=11.3 is not available for osx-64
@@ -99,7 +97,16 @@ variables:
 env_specs:
   default:
     description: Default environment spec for running commands
-    packages: []
-    channels: []
+    packages:
+      - pytorch-cuda=11.7
+
+    channels:
+      - nvidia
     platforms: []
+  cpu:
+      description: environment to run commands on cpu
+      packages:
+          - cpuonly
+      channels: []
+      platforms: []
 

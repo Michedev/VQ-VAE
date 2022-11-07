@@ -76,11 +76,7 @@ class VectorQuantizer(autograd.Function):
         B = e.shape[0]  # batch size
         E = w_embedding.shape[-1]  # embedding size
         with torch.no_grad():
-            # e: B, LS, ES
-            # w_embedding: LS, ES
-            # dist: B, LS, LS
             dist = torch.cdist(e, w_embedding)
-            # min_dist: B, LS
             i_min = torch.argmin(dist, dim=-1)
         ctx.save_for_backward(e, w_embedding, i_min)
         result = w_embedding.unsqueeze(0).expand(B, -1, -1).gather(dim=1, index=i_min.unsqueeze(-1).expand(-1, -1, E))
@@ -91,7 +87,7 @@ class VectorQuantizer(autograd.Function):
         grad_e = None
         grad_w_embedding = None
         if ctx.needs_input_grad[0]:
-            grad_e = grad_output.clone()
+            grad_e = - grad_output.clone()
         if ctx.needs_input_grad[1]:
             e, w_embedding, i_min = ctx.saved_tensors
             # print('============================')
@@ -144,7 +140,10 @@ class VQVAE(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, _ = batch
+        with torch.no_grad():
+            x = x * 2 - 1 # normalize to [-1, 1]
         result = self(x)
+        result['x'] = x
         x_recon = result['x_recon']
         e = result['e']
         e_quantized = result['e_quantized']
@@ -189,8 +188,10 @@ class VQVAE(pl.LightningModule):
         self.zero_grad(set_to_none=True)
 
     def log_metrics(self, loss_dict, forward_result: dict, dataset_split='train'):
+        x = forward_result['x']
         x_recon = forward_result['x_recon']
-        self.logger.experiment.add_images('x_recon', x_recon, self.global_step)
+        self.logger.experiment.add_images(f'{dataset_split}/x', x, self.global_step)
+        self.logger.experiment.add_images(f'{dataset_split}/x_recon', x_recon, self.global_step)
         self.log('%s/loss' % dataset_split, loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
         self.log('%s/recon_loss' % dataset_split, loss_dict['recon_loss'], on_step=True, on_epoch=True, prog_bar=True)
         self.log('%s/embedding_loss' % dataset_split, loss_dict['embedding_loss'], on_step=True, on_epoch=True, prog_bar=True)
@@ -210,6 +211,8 @@ class VQVAE(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, _ = batch
+        with torch.no_grad():
+            x = x * 2 - 1 # normalize to [-1, 1]
         if self.debug:
             with torch.no_grad():
                 print(f'{x.mean().item()=}, {x.std().item()=}')
