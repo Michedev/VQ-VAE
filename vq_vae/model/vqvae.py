@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Any
 
 import pytorch_lightning as pl
@@ -113,11 +114,12 @@ quantize = VectorQuantizer.apply
 class VQVAE(pl.LightningModule):
 
     def __init__(self, encoder, decoder, beta: float, latent_size: int,
-                 embedding_size: int, debug: bool = False):
+                 embedding_size: int, opt: partial, debug: bool = False):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
         self.beta = beta
+        self._opt_partial = opt
         self.mse = nn.MSELoss(reduction='none')
         self.latent_size = latent_size
         self.embedding_size = embedding_size
@@ -227,5 +229,5 @@ class VQVAE(pl.LightningModule):
         return result
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-4)
+        optimizer = self._opt_partial(params=self.parameters())
         return optimizer
