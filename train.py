@@ -2,13 +2,13 @@ import hydra
 import pkg_resources
 from omegaconf import DictConfig, OmegaConf
 from path import Path
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, ModelSummary
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 
 from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
 import omegaconf
 import os
-from vq_vae.utils.paths import CODE_MODEL
+from utils.paths import CODE_MODEL
 
 
 @hydra.main(pkg_resources.resource_filename("vq_vae", 'config'), 'train.yaml')
