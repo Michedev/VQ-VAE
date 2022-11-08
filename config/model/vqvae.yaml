@@ -4,11 +4,11 @@ embedding_size: 64
 debug: false
 beta: 0.25
 encoder:
-  _target_: model.vqvae.sequential_encoder
+  _target_: model.encoder_decoder.sequential_encoder
   input_channels: ${dataset.channels}
   output_channels: ${model.embedding_size}
 decoder:
-  _target_: model.vqvae.sequential_decoder
+  _target_: model.encoder_decoder.sequential_decoder
   input_channels: ${model.embedding_size}
   output_channels: ${dataset.channels}
 opt:
