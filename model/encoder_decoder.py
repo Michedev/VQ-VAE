@@ -9,12 +9,14 @@ class ResModule(nn.Module):
     def __init__(self, channels):
         super().__init__()
         self.conv1 = nn.Conv2d(channels, 256, 3, padding=1)
+        self.bn1 = nn.BatchNorm2d(256)
         self.conv2 = nn.Conv2d(256, channels, 1)
         self.relu = nn.ReLU()
 
     def forward(self, x):
         h = self.relu(x)
         h = self.conv1(h)
+        h = self.bn1(h)
         h = self.relu(h)
         h = self.conv2(h)
         return x + h
@@ -32,8 +34,10 @@ def sequential_encoder(input_channels: int, output_channels: int, hidden_units=2
 
     return nn.Sequential(
         nn.Conv2d(input_channels, hidden_units, 4, stride=2),
+        nn.BatchNorm2d(hidden_units),
         nn.ReLU(),
         nn.Conv2d(hidden_units, hidden_units, 4, stride=2),
+        nn.BatchNorm2d(hidden_units),
         nn.ReLU(),
         ResModule(hidden_units),
         ResModule(hidden_units),
@@ -54,8 +58,10 @@ def sequential_decoder(input_channels: int, output_channels: int, hidden_units=2
         ResModule(input_channels),
         ResModule(input_channels),
         nn.ConvTranspose2d(input_channels, hidden_units, 4, stride=2, output_padding=1),
+        nn.BatchNorm2d(hidden_units),
         nn.ReLU(),
         nn.ConvTranspose2d(hidden_units, hidden_units, 4, stride=2, output_padding=1),
+        nn.BatchNorm2d(hidden_units),
         nn.ReLU(),
         nn.Conv2d(hidden_units, output_channels, 1)
     )
