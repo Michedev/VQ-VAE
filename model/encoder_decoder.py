@@ -53,9 +53,9 @@ def sequential_decoder(input_channels: int, output_channels: int, hidden_units=2
     return nn.Sequential(
         ResModule(input_channels),
         ResModule(input_channels),
-        nn.ConvTranspose2d(input_channels, hidden_units, 4, stride=2),
+        nn.ConvTranspose2d(input_channels, hidden_units, 4, stride=2, output_padding=1),
         nn.ReLU(),
-        nn.ConvTranspose2d(hidden_units, hidden_units, 4, stride=2),
+        nn.ConvTranspose2d(hidden_units, hidden_units, 4, stride=2, output_padding=1),
         nn.ReLU(),
         nn.Conv2d(hidden_units, output_channels, 1)
     )
