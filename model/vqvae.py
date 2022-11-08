@@ -87,7 +87,7 @@ class VectorQuantizer(autograd.Function):
         grad_e = None
         grad_w_embedding = None
         if ctx.needs_input_grad[0]:
-            grad_e = - grad_output.clone()
+            grad_e = grad_output.clone()
         if ctx.needs_input_grad[1]:
             e, w_embedding, i_min = ctx.saved_tensors
             # print('============================')
@@ -99,7 +99,7 @@ class VectorQuantizer(autograd.Function):
             embedding_size = grad_output.shape[-1]
             grad_output_flatten = grad_output.contiguous().view(-1, embedding_size)
             grad_w_embedding = grad_w_embedding.index_add(dim=0, index=i_min.view(-1),
-                                                          source=- grad_output_flatten)
+                                                          source=grad_output_flatten)
 
         return grad_e, grad_w_embedding
 
@@ -187,11 +187,13 @@ class VQVAE(pl.LightningModule):
         self.automatic_optimization = old_value
         self.zero_grad(set_to_none=True)
 
+
+    @torch.no_grad()
     def log_metrics(self, loss_dict, forward_result: dict, dataset_split='train'):
         x = forward_result['x']
         x_recon = forward_result['x_recon']
-        self.logger.experiment.add_images(f'{dataset_split}/x', x, self.global_step)
-        self.logger.experiment.add_images(f'{dataset_split}/x_recon', x_recon, self.global_step)
+        self.logger.experiment.add_images(f'{dataset_split}/x', (x + 1) / 2, self.global_step)
+        self.logger.experiment.add_images(f'{dataset_split}/x_recon', (x_recon + 1) / 2, self.global_step)
         self.log('%s/loss' % dataset_split, loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
         self.log('%s/recon_loss' % dataset_split, loss_dict['recon_loss'], on_step=True, on_epoch=True, prog_bar=True)
         self.log('%s/embedding_loss' % dataset_split, loss_dict['embedding_loss'], on_step=True, on_epoch=True, prog_bar=True)
@@ -212,7 +214,7 @@ class VQVAE(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, _ = batch
         with torch.no_grad():
-            x = x * 2 - 1 # normalize to [-1, 1]
+            x = x * 2 - 1  # normalize to [-1, 1]
         if self.debug:
             with torch.no_grad():
                 print(f'{x.mean().item()=}, {x.std().item()=}')
