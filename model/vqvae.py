@@ -7,45 +7,6 @@ import torch
 from torch import nn, autograd
 
 
-def sequential_encoder(input_channels: int, output_channels: int):
-    return nn.Sequential(
-        nn.Conv2d(input_channels, 32, kernel_size=5, padding=2),
-        nn.GroupNorm(1, 32),
-        nn.ReLU(),
-        nn.Conv2d(32, 32, kernel_size=5, padding=2, stride=2),
-        nn.GroupNorm(1, 32),
-        nn.ReLU(),
-        nn.Conv2d(32, 32, kernel_size=5, padding=2),
-        nn.GroupNorm(1, 32),
-        nn.ReLU(),
-        nn.Conv2d(32, 32, kernel_size=5, padding=2, stride=2),
-        nn.GroupNorm(1, 32),
-        nn.ReLU(),
-        nn.Conv2d(32, output_channels, kernel_size=5, padding=2),
-    )
-
-
-def sequential_decoder(input_channels: int, output_channels: int):
-    x = nn.Sequential(
-        nn.ConvTranspose2d(input_channels, 32, kernel_size=5),
-        nn.GroupNorm(1, 32),
-        nn.ReLU(),
-        nn.ConvTranspose2d(32, 32, kernel_size=5),
-        nn.GroupNorm(1, 32),
-        nn.ReLU(),
-        nn.ConvTranspose2d(32, 32, kernel_size=5),
-        nn.GroupNorm(1, 32),
-        nn.ReLU(),
-        nn.ConvTranspose2d(32, 32, kernel_size=5),
-        nn.GroupNorm(1, 32),
-        nn.ReLU(),
-        nn.ConvTranspose2d(32, output_channels, kernel_size=6),
-    )
-    for m in x.modules():
-        if isinstance(m, nn.Linear): print(m.weight.shape)
-    return x
-
-
 class VectorQuantizer(autograd.Function):
 
     @staticmethod
@@ -189,7 +150,6 @@ class VQVAE(pl.LightningModule):
         self.automatic_optimization = old_value
         self.zero_grad(set_to_none=True)
 
-
     @torch.no_grad()
     def log_metrics(self, loss_dict, forward_result: dict, dataset_split='train'):
         x = forward_result['x']
@@ -198,7 +158,8 @@ class VQVAE(pl.LightningModule):
         self.logger.experiment.add_images(f'{dataset_split}/x_recon', (x_recon + 1) / 2, self.global_step)
         self.log('%s/loss' % dataset_split, loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
         self.log('%s/recon_loss' % dataset_split, loss_dict['recon_loss'], on_step=True, on_epoch=True, prog_bar=True)
-        self.log('%s/embedding_loss' % dataset_split, loss_dict['embedding_loss'], on_step=True, on_epoch=True, prog_bar=True)
+        self.log('%s/embedding_loss' % dataset_split, loss_dict['embedding_loss'], on_step=True, on_epoch=True,
+                 prog_bar=True)
         self.log('%s/commit_loss' % dataset_split, loss_dict['commit_loss'], on_step=True, on_epoch=True, prog_bar=True)
 
     def calc_loss(self, x, x_recon, e, e_quantized) -> dict:
@@ -208,7 +169,8 @@ class VQVAE(pl.LightningModule):
         if self.debug:
             with torch.no_grad():
                 print(f'{recon_loss=}, {embedding_loss=}, {commit_loss=}')
-                print(f'{e.mean().item()=}, {e.std().item()=}, {e_quantized.mean().item()=}, {e_quantized.std().item()=}')
+                print(
+                    f'{e.mean().item()=}, {e.std().item()=}, {e_quantized.mean().item()=}, {e_quantized.std().item()=}')
         return dict(loss=recon_loss + embedding_loss + commit_loss,
                     recon_loss=recon_loss, embedding_loss=embedding_loss,
                     commit_loss=commit_loss)
