@@ -110,8 +110,9 @@ quantize = VectorQuantizer.apply
 class VQVAE(pl.LightningModule):
 
     def __init__(self, encoder, decoder, beta: float, latent_size: int,
-                 embedding_size: int, opt: partial, debug: bool = False):
+                 embedding_size: int, opt: partial, debug: bool = False, logging_train_freq=1_000):
         super().__init__()
+        self.logging_train_freq = logging_train_freq
         self.encoder = encoder
         self.decoder = decoder
         self.beta = beta
@@ -141,7 +142,7 @@ class VQVAE(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, _ = batch
         with torch.no_grad():
-            x = x * 2 - 1 # normalize to [-1, 1]
+            x = x * 2 - 1  # normalize to [-1, 1]
         result = self(x)
         result['x'] = x
         x_recon = result['x_recon']
@@ -151,7 +152,7 @@ class VQVAE(pl.LightningModule):
         if self.debug:
             self._print_grad(loss_dict)
 
-        if self.global_step % 1_000 == 0:
+        if self.global_step % self.logging_train_freq == 0:
             self.log_metrics(loss_dict, result)
         return loss_dict
 
@@ -166,7 +167,8 @@ class VQVAE(pl.LightningModule):
                 wgrad = m.weight.grad
                 bgrad = m.bias.grad
                 print('\t\tweight is na =', wgrad is None)
-                print('\t\tbias is na =', bgrad is None)
+                print('\t\tbias is '
+                      'na =', bgrad is None)
                 if not wgrad is None:
                     print('\t\tmean weight grad =', wgrad.mean().item())
                 if not bgrad is None:

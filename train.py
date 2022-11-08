@@ -41,10 +41,13 @@ def train(config: DictConfig):
     if config.early_stop:
         callbacks.append(EarlyStopping('valid/loss_epoch', min_delta=config.min_delta,
                                        patience=config.patience))
+
+    epochs = config.steps // len(train_dl) if config.steps else None
+
     trainer = pl.Trainer(callbacks=callbacks, accelerator=config.accelerator, devices=config.devices,
                          gradient_clip_val=config.gradient_clip_val,
                          gradient_clip_algorithm=config.gradient_clip_algorithm,
-                         resume_from_checkpoint=ckpt)
+                         resume_from_checkpoint=ckpt, max_epochs=epochs)
     trainer.fit(model, train_dl, val_dl)
 
 

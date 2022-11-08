@@ -3,16 +3,17 @@ defaults:
   - dataset: mnist
   - optional ovv model_dataset: ${model}-${dataset}
 
-batch_size: 32
+batch_size: 128
 accelerator: null  # from pytorch-lightning, the hardware platform used to train the neural network. Can be "cpu", "gpu", or "tpu"
 devices: null  # the devices to use in a given hardware platform (see argument above). Can be a list of integers, or a single integer
 gradient_clip_val: 0.0  # gradient clip value - set to 0.0 to disable
 gradient_clip_algorithm: norm  # gradient clip algorithm - either 'norm' or 'value'
-early_stop: true  # stop training if the validation loss does not improve for patience epochs
+early_stop: false  # stop training if the validation loss does not improve for patience epochs
 patience: 10  # early stopping patience; set to -1 to disable
 min_delta: 0.0  # minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute change of less than min_delta, will count as no improvement.
 ckpt: null  # path to checkpoint
 seed: 1337  # random seed
+steps: 250_000 # training steps
 
 hydra:
   run:
