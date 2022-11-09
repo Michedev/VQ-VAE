@@ -73,6 +73,7 @@ class VQVAE(pl.LightningModule):
         tg.set_dim('LS', self.latent_size)
         self.debug = debug
         tg.set_dim('ES', embedding_size)
+        self.bce = nn.BCEWithLogitsLoss(reduction='none')
         with torch.no_grad():
             nn.init.xavier_normal_(self.w_embedding)
 
@@ -90,8 +91,6 @@ class VQVAE(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, _ = batch
-        with torch.no_grad():
-            x = x * 2 - 1  # normalize to [-1, 1]
         result = self(x)
         result['x'] = x
         x_recon = result['x_recon']
@@ -151,7 +150,7 @@ class VQVAE(pl.LightningModule):
         self.log('%s/commit_loss' % dataset_split, loss_dict['commit_loss'], on_step=True, on_epoch=True, prog_bar=True)
 
     def calc_loss(self, x, x_recon, e, e_quantized) -> dict:
-        recon_loss = self.mse(x_recon, x).mean(dim=0).sum()
+        recon_loss = self.bce(x_recon, x).mean(dim=0).sum()
         embedding_loss = self.mse(e_quantized, e.detach()).mean()
         commit_loss = self.beta * self.mse(e_quantized.detach(), e).mean()
         if self.debug:
@@ -165,8 +164,6 @@ class VQVAE(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, _ = batch
-        with torch.no_grad():
-            x = x * 2 - 1  # normalize to [-1, 1]
         if self.debug:
             with torch.no_grad():
                 print(f'{x.mean().item()=}, {x.std().item()=}')
