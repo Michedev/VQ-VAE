@@ -49,12 +49,6 @@ class VectorQuantizer(autograd.Function):
         grad_w_embedding = None
         if ctx.needs_input_grad[0]:
             grad_e = grad_output.clone()
-        if ctx.needs_input_grad[1]:
-            e, w_embedding, i_min = ctx.saved_tensors
-            # print('============================')
-            # print(f'{e.shape=}, {w_embedding.shape=}, {i_min.shape=}, {grad_output.shape=}')
-            # print('============================')
-            grad_w_embedding: torch.Tensor = torch.zeros_like(w_embedding)
 
         return grad_e, grad_w_embedding
 
