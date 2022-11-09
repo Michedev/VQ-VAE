@@ -1,0 +1,5 @@
+# @package _global_
+
+model:
+  embedding_size: 16
+  latent_size: 128
