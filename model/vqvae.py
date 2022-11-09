@@ -10,7 +10,7 @@ from torch import nn, autograd
 class VectorQuantizer(autograd.Function):
 
     @staticmethod
-    def forward(ctx: Any, e, w_embedding) -> Any:
+    def forward(ctx: Any, e: torch.Tensor, w_embedding: torch.Tensor) -> Any:
         """
         Quantize the embedding
 
