@@ -55,12 +55,6 @@ class VectorQuantizer(autograd.Function):
             # print(f'{e.shape=}, {w_embedding.shape=}, {i_min.shape=}, {grad_output.shape=}')
             # print('============================')
             grad_w_embedding: torch.Tensor = torch.zeros_like(w_embedding)
-            # grad_div: torch.Tensor = torch.zeros_like(w_embedding)
-            #
-            embedding_size = grad_output.shape[-1]
-            grad_output_flatten = grad_output.contiguous().view(-1, embedding_size)
-            grad_w_embedding = grad_w_embedding.index_add(dim=0, index=i_min.view(-1),
-                                                          source=grad_output_flatten)
 
         return grad_e, grad_w_embedding
 
