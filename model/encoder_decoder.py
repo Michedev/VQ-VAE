@@ -11,6 +11,7 @@ class ResModule(nn.Module):
         self.conv1 = nn.Conv2d(channels, 256, 3, padding=1)
         self.bn1 = nn.BatchNorm2d(256)
         self.conv2 = nn.Conv2d(256, channels, 1)
+        self.bn2 = nn.BatchNorm2d(channels)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -19,6 +20,7 @@ class ResModule(nn.Module):
         h = self.bn1(h)
         h = self.relu(h)
         h = self.conv2(h)
+        h = self.bn2(h)
         return x + h
 
 
