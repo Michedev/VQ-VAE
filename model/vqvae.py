@@ -39,17 +39,28 @@ class VectorQuantizer(autograd.Function):
         with torch.no_grad():
             dist = torch.cdist(e, w_embedding)
             i_min = torch.argmin(dist, dim=-1)
-        ctx.save_for_backward(e, w_embedding, i_min)
         result = w_embedding.unsqueeze(0).expand(B, -1, -1).gather(dim=1, index=i_min.unsqueeze(-1).expand(-1, -1, E))
+        ctx.save_for_backward(e, w_embedding, i_min, result)
         return result
+
 
     @staticmethod
     def backward(ctx: Any, grad_output) -> Any:
         grad_e = None
         grad_w_embedding = None
+        print('grad_output.shape =', grad_output.shape)
         if ctx.needs_input_grad[0]:
             grad_e = grad_output.clone()
-
+        if ctx.needs_input_grad[1]:
+            e, w_embedding, i_min, e_hat = ctx.saved_tensors
+            loss_grad: torch.Tensor = 2 * (e_hat - e)
+            grad_w_embedding = torch.zeros_like(w_embedding)
+            # grad_div: torch.Tensor = torch.zeros_like(w_embedding)
+            #
+            embedding_size = grad_output.shape[-1]
+            grad_output_flatten = loss_grad.contiguous().view(-1, embedding_size)
+            grad_w_embedding = grad_w_embedding.index_add(dim=0, index=i_min.view(-1),
+                                                          source=grad_output_flatten)
         return grad_e, grad_w_embedding
 
 
@@ -133,7 +144,7 @@ class VQVAE(pl.LightningModule):
                     print('\t\tmean weight grad =', wgrad.mean().item())
                 if not bgrad is None:
                     print('\t\tmean bias grad =', bgrad.mean().item())
-
+        print(f'{self.w_embedding.grad.mean().item() =}')
         self.automatic_optimization = old_value
         self.zero_grad(set_to_none=True)
 
