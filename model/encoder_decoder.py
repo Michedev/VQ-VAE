@@ -6,11 +6,11 @@ class ResModule(nn.Module):
     ReLU, 3x3 conv, ReLU, 1x1 conv with 256 hidden units.
     """
 
-    def __init__(self, channels):
+    def __init__(self, channels, hidden_channels=256):
         super().__init__()
-        self.conv1 = nn.Conv2d(channels, 256, 3, padding=1)
-        self.bn1 = nn.BatchNorm2d(256)
-        self.conv2 = nn.Conv2d(256, channels, 1)
+        self.conv1 = nn.Conv2d(channels, hidden_channels, 3, padding=1)
+        self.bn1 = nn.BatchNorm2d(hidden_channels)
+        self.conv2 = nn.Conv2d(hidden_channels, channels, 1)
         self.bn2 = nn.BatchNorm2d(channels)
         self.relu = nn.ReLU()
 
@@ -41,8 +41,8 @@ def sequential_encoder(input_channels: int, output_channels: int, hidden_units=2
         nn.Conv2d(hidden_units, hidden_units, 4, stride=2),
         nn.BatchNorm2d(hidden_units),
         nn.ReLU(),
-        ResModule(hidden_units),
-        ResModule(hidden_units),
+        ResModule(hidden_units, hidden_units),
+        ResModule(hidden_units, hidden_units),
         nn.Conv2d(hidden_units, output_channels, 1)
     )
 

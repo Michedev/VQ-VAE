@@ -100,19 +100,7 @@ class VQVAE(pl.LightningModule):
                     e=e, e_quantized_reshaped=e_quantized_reshaped, loss_vq=loss_vq)
 
     def training_step(self, batch, batch_idx):
-        x, _ = batch
-        result = self(x)
-        result['x'] = x
-        x_recon = result['x_recon']
-        e = result['e']
-        e_quantized = result['e_quantized']
-        loss_dict = self.calc_loss(x, x_recon, e, e_quantized, result['loss_vq'])
-        if self.debug:
-            self._print_grad(loss_dict)
-
-        if self.global_step % self.logging_train_freq == 0:
-            self.log_metrics(loss_dict, result)
-        return loss_dict
+        return self._step(batch, batch_idx, dataset_split='train')
 
     def _print_grad(self, loss_dict):
         old_value = self.automatic_optimization
@@ -151,8 +139,8 @@ class VQVAE(pl.LightningModule):
     def log_metrics(self, loss_dict, forward_result: dict, dataset_split='train'):
         x = forward_result['x']
         x_recon = forward_result['x_recon']
-        self.logger.experiment.add_images(f'{dataset_split}/x', x, self.global_step)
-        self.logger.experiment.add_images(f'{dataset_split}/x_recon', x_recon.sigmoid(), self.global_step)
+        self.logger.experiment.add_images(f'{dataset_split}/x', (x + 1) / 2 , self.global_step)
+        self.logger.experiment.add_images(f'{dataset_split}/x_recon', (x_recon + 1) / 2, self.global_step)
         self.log('%s/loss' % dataset_split, loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
         self.log('%s/recon_loss' % dataset_split, loss_dict['recon_loss'], on_step=True, on_epoch=True, prog_bar=True)
         self.log('%s/embedding_loss' % dataset_split, loss_dict['embedding_loss'], on_step=True, on_epoch=True,
@@ -160,7 +148,7 @@ class VQVAE(pl.LightningModule):
         self.log('%s/commit_loss' % dataset_split, loss_dict['commit_loss'], on_step=True, on_epoch=True, prog_bar=True)
 
     def calc_loss(self, x, x_recon, e, e_quantized, loss_vq) -> dict:
-        recon_loss = self.bce(x_recon, x).mean(dim=0).sum()
+        recon_loss = self.mse(x_recon, x).mean(dim=0).sum()
         commit_loss = self.beta * self.mse(e_quantized.detach(), e).mean()
         if self.debug:
             with torch.no_grad():
@@ -171,26 +159,34 @@ class VQVAE(pl.LightningModule):
                     recon_loss=recon_loss, embedding_loss=loss_vq,
                     commit_loss=commit_loss)
 
-    def validation_step(self, batch, batch_idx):
+    def _step(self, batch, batch_idx, dataset_split='train'):
         x, _ = batch
+        with torch.no_grad():
+            x = x * 2 - 1 # normalize to [-1, 1]
         if self.debug:
             with torch.no_grad():
                 print(f'{x.mean().item()=}, {x.std().item()=}')
-        tg.guard(x, "*, C, W, H")
         forward_result = self(x)
         forward_result['x'] = x
         x_recon = forward_result['x_recon']
         e = forward_result['e']
         e_quantized = forward_result['e_quantized']
-        tg.guard(self.w_embedding, "LS, ES")
-        tg.guard(x_recon, "*, C, W, H")
-        tg.guard(e, "*, L1, ES")
-        tg.guard(e_quantized, "*, L1, ES")
-
+        if dataset_split == 'valid':
+            tg.guard(x, "*, C, W, H")
+            tg.guard(self.w_embedding, "LS, ES")
+            tg.guard(x_recon, "*, C, W, H")
+            tg.guard(e, "*, L1, ES")
+            tg.guard(e_quantized, "*, L1, ES")
+        if dataset_split == 'valid' or self.global_step % self.logging_train_freq == 0:
+            self.log_metrics(self.calc_loss(x, x_recon, e, e_quantized, forward_result['loss_vq']), forward_result,
+                             dataset_split)
         loss_dict = self.calc_loss(x, x_recon, e, e_quantized, forward_result['loss_vq'])
         self.log_metrics(loss_dict, forward_result, dataset_split='valid')
         result = {**loss_dict, **forward_result}
         return result
+
+    def validation_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx, dataset_split='valid')
 
     def configure_optimizers(self):
         optimizer = self._opt_partial(params=self.parameters())
