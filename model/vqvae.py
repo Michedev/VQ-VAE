@@ -49,7 +49,7 @@ class VectorQuantizer(autograd.Function):
     def backward(ctx: Any, grad_output, grad_loss_vq) -> Any:
         grad_e = None
         grad_w_embedding = None
-        print('grad_output.shape =', grad_output.shape)
+        # print('grad_output.shape =', grad_output.shape)
         if ctx.needs_input_grad[0]:
             grad_e = grad_output.clone()
         if ctx.needs_input_grad[1]:
