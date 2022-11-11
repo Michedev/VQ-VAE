@@ -32,7 +32,7 @@ class VectorQuantizer(autograd.Function):
         @param e: the embedding tensor with shape (batch_size, length, embedding_dim)
         @param w_embedding: the embedding dictionary with shape (num_embeddings, embedding_dim)
 
-        @return the quantized embedding
+        @return the quantized embedding with shape (batch_size, length, embedding_dim)
         """
         B = e.shape[0]  # batch size
         E = w_embedding.shape[-1]  # embedding size
@@ -41,11 +41,12 @@ class VectorQuantizer(autograd.Function):
             i_min = torch.argmin(dist, dim=-1)
         result = w_embedding.unsqueeze(0).expand(B, -1, -1).gather(dim=1, index=i_min.unsqueeze(-1).expand(-1, -1, E))
         ctx.save_for_backward(e, w_embedding, i_min, result)
-        return result
+        loss_vq = torch.pow(result - e.detach(), 2)
+        return result, loss_vq
 
 
     @staticmethod
-    def backward(ctx: Any, grad_output) -> Any:
+    def backward(ctx: Any, grad_output, grad_loss_vq) -> Any:
         grad_e = None
         grad_w_embedding = None
         print('grad_output.shape =', grad_output.shape)
@@ -53,12 +54,9 @@ class VectorQuantizer(autograd.Function):
             grad_e = grad_output.clone()
         if ctx.needs_input_grad[1]:
             e, w_embedding, i_min, e_hat = ctx.saved_tensors
-            loss_grad: torch.Tensor = 2 * (e_hat - e)
             grad_w_embedding = torch.zeros_like(w_embedding)
-            # grad_div: torch.Tensor = torch.zeros_like(w_embedding)
-            #
             embedding_size = grad_output.shape[-1]
-            grad_output_flatten = loss_grad.contiguous().view(-1, embedding_size)
+            grad_output_flatten = grad_loss_vq.contiguous().view(-1, embedding_size)
             grad_w_embedding = grad_w_embedding.index_add(dim=0, index=i_min.view(-1),
                                                           source=grad_output_flatten)
         return grad_e, grad_w_embedding
@@ -93,12 +91,13 @@ class VQVAE(pl.LightningModule):
         w_e, h_e = e.shape[2:]
         e = e.flatten(start_dim=2)
         e = e.permute(0, 2, 1)
-        e_quantized = quantize(e, self.w_embedding)
+        e_quantized, loss_vq = quantize(e, self.w_embedding)
         e_quantized_reshaped = e_quantized.permute(0, 2, 1)
         e_quantized_reshaped = e_quantized_reshaped.reshape(-1, self.embedding_size, w_e, h_e)
         x_recon = self.decoder(e_quantized_reshaped)
+        loss_vq = loss_vq.mean()
         return dict(x_recon=x_recon, e_quantized=e_quantized,
-                    e=e, e_quantized_reshaped=e_quantized_reshaped)
+                    e=e, e_quantized_reshaped=e_quantized_reshaped, loss_vq=loss_vq)
 
     def training_step(self, batch, batch_idx):
         x, _ = batch
@@ -107,7 +106,7 @@ class VQVAE(pl.LightningModule):
         x_recon = result['x_recon']
         e = result['e']
         e_quantized = result['e_quantized']
-        loss_dict = self.calc_loss(x, x_recon, e, e_quantized)
+        loss_dict = self.calc_loss(x, x_recon, e, e_quantized, result['loss_vq'])
         if self.debug:
             self._print_grad(loss_dict)
 
@@ -160,17 +159,16 @@ class VQVAE(pl.LightningModule):
                  prog_bar=True)
         self.log('%s/commit_loss' % dataset_split, loss_dict['commit_loss'], on_step=True, on_epoch=True, prog_bar=True)
 
-    def calc_loss(self, x, x_recon, e, e_quantized) -> dict:
+    def calc_loss(self, x, x_recon, e, e_quantized, loss_vq) -> dict:
         recon_loss = self.bce(x_recon, x).mean(dim=0).sum()
-        embedding_loss = self.mse(e_quantized, e.detach()).mean()
         commit_loss = self.beta * self.mse(e_quantized.detach(), e).mean()
         if self.debug:
             with torch.no_grad():
-                print(f'{recon_loss=}, {embedding_loss=}, {commit_loss=}')
+                print(f'{recon_loss=}, {loss_vq=}, {commit_loss=}')
                 print(
                     f'{e.mean().item()=}, {e.std().item()=}, {e_quantized.mean().item()=}, {e_quantized.std().item()=}')
-        return dict(loss=recon_loss + embedding_loss + commit_loss,
-                    recon_loss=recon_loss, embedding_loss=embedding_loss,
+        return dict(loss=recon_loss + loss_vq + commit_loss,
+                    recon_loss=recon_loss, embedding_loss=loss_vq,
                     commit_loss=commit_loss)
 
     def validation_step(self, batch, batch_idx):
@@ -189,7 +187,7 @@ class VQVAE(pl.LightningModule):
         tg.guard(e, "*, L1, ES")
         tg.guard(e_quantized, "*, L1, ES")
 
-        loss_dict = self.calc_loss(x, x_recon, e, e_quantized)
+        loss_dict = self.calc_loss(x, x_recon, e, e_quantized, forward_result['loss_vq'])
         self.log_metrics(loss_dict, forward_result, dataset_split='valid')
         result = {**loss_dict, **forward_result}
         return result
