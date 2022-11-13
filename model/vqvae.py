@@ -90,13 +90,12 @@ class VQVAE(pl.LightningModule):
         w_e, h_e = e.shape[2:]
         e = e.flatten(start_dim=2)
         e = e.permute(0, 2, 1)
-        e_quantized, loss_vq, loss_commit = quantize(e, self.w_embedding)
+        e_quantized = quantize(e, self.w_embedding)
         e_quantized_reshaped = e_quantized.permute(0, 2, 1)
         e_quantized_reshaped = e_quantized_reshaped.reshape(-1, self.embedding_size, w_e, h_e)
         x_recon = self.decoder(e_quantized_reshaped)
         return dict(x_recon=x_recon, e_quantized=e_quantized,
-                    e=e, e_quantized_reshaped=e_quantized_reshaped,
-                    loss_vq=loss_vq, loss_commit=loss_commit)
+                    e=e, e_quantized_reshaped=e_quantized_reshaped)
 
     def training_step(self, batch, batch_idx):
         return self._step(batch, batch_idx, dataset_split='train')
@@ -173,7 +172,7 @@ class VQVAE(pl.LightningModule):
 
     def calc_loss(self, x, x_recon, e, e_quantized) -> dict:
         loss_recon = self.bce(x_recon, x).mean(dim=0).sum()
-        loss_vq = self.mse_loss(e_quantized.detach(), e, reduction='none').mean(dim=0).sum()
+        loss_vq = self.mse(e_quantized.detach(), e).mean(dim=0).sum()
         loss_commit = self.beta * self.mse(e_quantized.detach(), e).mean()
         if self.debug:
             with torch.no_grad():
@@ -181,8 +180,8 @@ class VQVAE(pl.LightningModule):
                 print(
                     f'{e.mean().item()=}, {e.std().item()=}, {e_quantized.mean().item()=}, {e_quantized.std().item()=}')
         return dict(loss=loss_recon + loss_vq + loss_commit,
-                    recon_loss=loss_recon, embedding_loss=loss_vq,
-                    commit_loss=loss_commit)
+                    loss_recon=loss_recon, loss_vq=loss_vq,
+                    loss_commit=loss_commit)
 
     def configure_optimizers(self):
         optimizer = self._opt_partial(params=self.parameters())
