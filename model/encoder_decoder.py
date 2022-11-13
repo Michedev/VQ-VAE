@@ -24,46 +24,46 @@ class ResModule(nn.Module):
         return x + h
 
 
-def sequential_encoder(input_channels: int, output_channels: int, hidden_units=256):
+def sequential_encoder(input_channels: int, output_channels: int, hidden_channels=256):
     """
     The encoder consists of 2 strided convolutional layers with stride 2 and window size 4 × 4, followed by two residual
     3 × 3 blocks (implemented as ReLU, 3x3 conv, ReLU, 1x1 conv), all having 256 hidden units.
     @param input_channels:
     @param output_channels:
-    @param hidden_units:
+    @param hidden_channels:
     @return: the encoder module
     """
 
     return nn.Sequential(
-        nn.Conv2d(input_channels, hidden_units, 4, stride=2),
-        nn.BatchNorm2d(hidden_units),
+        nn.Conv2d(input_channels, hidden_channels, 4, stride=2),
+        nn.BatchNorm2d(hidden_channels),
         nn.ReLU(),
-        nn.Conv2d(hidden_units, hidden_units, 4, stride=2),
-        nn.BatchNorm2d(hidden_units),
+        nn.Conv2d(hidden_channels, hidden_channels, 4, stride=2),
+        nn.BatchNorm2d(hidden_channels),
         nn.ReLU(),
-        ResModule(hidden_units, hidden_units),
-        ResModule(hidden_units, hidden_units),
-        nn.Conv2d(hidden_units, output_channels, 1)
+        ResModule(hidden_channels, hidden_channels),
+        ResModule(hidden_channels, hidden_channels),
+        nn.Conv2d(hidden_channels, output_channels, 1)
     )
 
-def sequential_decoder(input_channels: int, output_channels: int, hidden_units=256):
+def sequential_decoder(input_channels: int, output_channels: int, hidden_channels=256):
     """
     The decoder consists of two residual 3 × 3 blocks, followed by two strided convolutional layers with stride 2 and
     window size 4 × 4, all having 256 hidden units.
     @param input_channels:
     @param output_channels:
-    @param hidden_units:
+    @param hidden_channels:
     @return: the decoder module
     """
 
     return nn.Sequential(
         ResModule(input_channels),
         ResModule(input_channels),
-        nn.ConvTranspose2d(input_channels, hidden_units, 4, stride=2, output_padding=1),
-        nn.BatchNorm2d(hidden_units),
+        nn.ConvTranspose2d(input_channels, hidden_channels, 4, stride=2, output_padding=1),
+        nn.BatchNorm2d(hidden_channels),
         nn.ReLU(),
-        nn.ConvTranspose2d(hidden_units, hidden_units, 4, stride=2),
-        nn.BatchNorm2d(hidden_units),
+        nn.ConvTranspose2d(hidden_channels, hidden_channels, 4, stride=2),
+        nn.BatchNorm2d(hidden_channels),
         nn.ReLU(),
-        nn.Conv2d(hidden_units, output_channels, 1)
+        nn.Conv2d(hidden_channels, output_channels, 1)
     )
