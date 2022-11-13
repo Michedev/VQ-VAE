@@ -13,5 +13,5 @@ decoder:
   output_channels: ${dataset.channels}
 opt:
   _target_: torch.optim.Adam
-  lr: 2e-4
   _partial_: true
+  lr: 2e-4

@@ -101,6 +101,9 @@ class VQVAE(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         return self._step(batch, batch_idx, dataset_split='train')
 
+    def validation_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx, dataset_split='valid')
+
     def _print_grad(self, loss_dict):
         old_value = self.automatic_optimization
         self.automatic_optimization = False
@@ -142,8 +145,7 @@ class VQVAE(pl.LightningModule):
         self.logger.experiment.add_images(f'{dataset_split}/x_recon', x_recon.sigmoid(), self.global_step)
         self.log('%s/loss' % dataset_split, loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
         self.log('%s/loss_recon' % dataset_split, loss_dict['loss_recon'], on_step=True, on_epoch=True, prog_bar=True)
-        self.log('%s/loss_vq' % dataset_split, loss_dict['loss_vq'], on_step=True, on_epoch=True,
-                 prog_bar=True)
+        self.log('%s/loss_vq' % dataset_split, loss_dict['loss_vq'], on_step=True, on_epoch=True, prog_bar=True)
         self.log('%s/loss_commit' % dataset_split, loss_dict['loss_commit'], on_step=True, on_epoch=True, prog_bar=True)
 
     def _step(self, batch, batch_idx, dataset_split='train'):
@@ -181,10 +183,6 @@ class VQVAE(pl.LightningModule):
         return dict(loss=loss_recon + loss_vq + loss_commit,
                     recon_loss=loss_recon, embedding_loss=loss_vq,
                     commit_loss=loss_commit)
-
-
-    def validation_step(self, batch, batch_idx):
-        return self._step(batch, batch_idx, dataset_split='valid')
 
     def configure_optimizers(self):
         optimizer = self._opt_partial(params=self.parameters())
