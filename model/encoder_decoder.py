@@ -34,7 +34,7 @@ def sequential_encoder(input_channels: int, output_channels: int, hidden_channel
     @return: the encoder module
     """
 
-    return nn.Sequential(
+    encoder = nn.Sequential(
         nn.Conv2d(input_channels, hidden_channels, 4, stride=2),
         nn.BatchNorm2d(hidden_channels),
         nn.ReLU(),
@@ -45,6 +45,9 @@ def sequential_encoder(input_channels: int, output_channels: int, hidden_channel
         ResModule(hidden_channels, hidden_channels),
         nn.Conv2d(hidden_channels, output_channels, 1)
     )
+    encoder.input_channels = input_channels
+    encoder.output_channels = output_channels
+    return encoder
 
 def sequential_decoder(input_channels: int, output_channels: int, hidden_channels=256):
     """
@@ -56,7 +59,7 @@ def sequential_decoder(input_channels: int, output_channels: int, hidden_channel
     @return: the decoder module
     """
 
-    return nn.Sequential(
+    decoder = nn.Sequential(
         ResModule(input_channels),
         ResModule(input_channels),
         nn.ConvTranspose2d(input_channels, hidden_channels, 4, stride=2, output_padding=1),
@@ -67,3 +70,6 @@ def sequential_decoder(input_channels: int, output_channels: int, hidden_channel
         nn.ReLU(),
         nn.Conv2d(hidden_channels, output_channels, 1)
     )
+    decoder.input_channels = input_channels
+    decoder.output_channels = output_channels
+    return decoder
