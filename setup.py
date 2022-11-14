@@ -1,5 +1,7 @@
 from setuptools import setup
 
+# setup.py to publish only model/ folder
+
 setup(
     name='pytorch_vqvae',
     version='1.0.0',
