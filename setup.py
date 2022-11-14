@@ -23,7 +23,7 @@ opt = partial(Adam, lr=2e-4)
 
 encoder = sequential_encoder(input_channels, embedding_size, hidden_channels)  # Encoder from the paper
 decoder = sequential_decoder(embedding_size, output_channels, hidden_channels)  # Decoder from the paper
-vqvae = VQVAE(encoder, decoder, beta, embedding_length, embedding_size, opt)  # Pytorch-Lightning module, 
+vqvae = VQVAE(encoder, decoder, opt, beta, embedding_length, embedding_size)  # Pytorch-Lightning module, 
                                                                               # hence usable to train the model
 
 ```
@@ -31,7 +31,7 @@ vqvae = VQVAE(encoder, decoder, beta, embedding_length, embedding_size, opt)  # 
 
 setup(
     name='vqvae',
-    version='1.0.0',
+    version='1.0.1',
     packages=['vqvae'],
     url='https://github.com/Michedev/VQ-VAE',
     license='MIT',
