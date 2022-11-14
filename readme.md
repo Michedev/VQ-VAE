@@ -1,3 +1,7 @@
+![PyPI - Downloads](https://img.shields.io/pypi/dm/vqvae)
+![PyPI](https://img.shields.io/pypi/v/vqvae)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/vqvae)
+
 # Deep Learning Template
 
 This is a template for deep learning projects based on _Pytorch, Pytorch Lightning, Anaconda-project and Hydra_.
