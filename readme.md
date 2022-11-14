@@ -2,23 +2,24 @@
 ![PyPI](https://img.shields.io/pypi/v/vqvae)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/vqvae)
 
-# Deep Learning Template
+# VQ-VAE
 
-This is a template for deep learning projects based on _Pytorch, Pytorch Lightning, Anaconda-project and Hydra_.
+VQ-VAE implementation based on _Pytorch, Pytorch Lightning, Anaconda-project and Hydra_.
 
-## How to initialize a new project
+## Install pip package
 
-1. Clone this repository
-2. Rename deep_learning_template to your project name in _anaconda-project.yml_ and folder name
-3. Create your model and, optionally, your dataset in _{src}/model_ and _{src}/dataset_ respectively
+```bash
+pip install vqvae
+```
 
+Pip package contains only model folder only
 
-## Install
+## Anaconda-project
 
 1. Clone the repository
 
 ```bash
-git clone https://github.com/Michedev/deep-learning-template.git
+git clone https://github.com/Michedev/VQ-VAE
 ```
 
 2. Install [anaconda](https://www.anaconda.com/) if you don't have it
@@ -35,7 +36,7 @@ anaconda-project run train-gpu
 
 _Note: First time will download and install all dependencies_
 
-You can also specify additional arguments according to `deep_learning_template/config/train.yaml` like
+You can also specify additional arguments according to `config/train.yaml` like
 
 ```bash
 anaconda-project run train accelerator=cpu  # train on cpu
@@ -45,26 +46,25 @@ anaconda-project run train accelerator=cpu  # train on cpu
 ## Project structure
 
     ├── data  # Data folder
-    ├── deep_learning_template  # source code
-    │   ├── config
-    │   │   ├── dataset  # Dataset config
-    │   │   ├── model  # Model config
-    │   │   ├── model_dataset  # model and dataset specific config
-    │   │   ├── test.yaml   # testing configuration
-    │   │   └── train.yaml  # training configuration
-    │   ├── dataset  # Dataset definition
-    │   ├── model  # Model definition
-    │   ├── utils
-    │   │   ├── experiment_tools.py # Iterate over experiments
-    │   │   └── paths.py  # common paths
-    │   ├── train.py  # Entrypoint point for training
-    │   └── test.py  # Entrypoint point for testing
+    ├── config
+    │   ├── dataset  # Dataset config
+    │   ├── model  # Model config
+    │   ├── model_dataset  # model and dataset specific config
+    │   ├── test.yaml   # testing configuration
+    │   └── train.yaml  # training configuration
+    ├── dataset  # Dataset definition
+    ├── model  # Model definition
+    ├── utils
+    │   ├── experiment_tools.py # Iterate over experiments
+    │   └── paths.py  # common paths
+    ├── train.py  # Entrypoint point for training
+    ├── test.py  # Entrypoint point for testing
     ├── anaconda-project.yml  # Project configuration
     ├── saved_models  # where models are saved
     └── readme.md  # This file
 
 ### Design keypoints
-- Code root folder (_deep_learning_template/_) should contain only entrypoint
+- root folder (_deep_learning_template/_) should contain only entrypoint
 - Add tasks to anaconda-project.yml via the command `anaconda-project add-command`
 
 
