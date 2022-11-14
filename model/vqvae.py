@@ -43,7 +43,6 @@ class VectorQuantizer(autograd.Function):
         ctx.save_for_backward(e, w_embedding, i_min, result)
         return result
 
-
     @staticmethod
     def backward(ctx: Any, grad_output: torch.Tensor) -> Any:
         grad_e = None
@@ -66,8 +65,20 @@ quantize = VectorQuantizer.apply
 
 class VQVAE(pl.LightningModule):
 
-    def __init__(self, encoder, decoder, beta: float, latent_size: int,
-                 embedding_size: int, opt: partial, debug: bool = False, logging_train_freq=1_000):
+    def __init__(self, encoder: nn.Module, decoder: nn.Module, opt: partial, beta: float = 0.25,
+                 num_embeddings: int = 512, embedding_size: int = 64, debug: bool = False,
+                 logging_train_freq: int = 1_000):
+        """
+        VQ-VAE model.
+        @param encoder: The encoder network. The output shape is (batch_size, num_embeddings, w1, h1)
+        @param decoder: The decoder network. Input size is  (batch_size, num_embeddings, w1, h1)
+        @param beta: Commitment loss weight
+        @param num_embeddings: Number of embedding vectors
+        @param embedding_size: Size of embedding vectors
+        @param opt: Partial function that returns an optimizer. Inside the object, it will be called with the parameters
+        @param debug: If True, the model will print the shapes of the tensors
+        @param logging_train_freq: How often to log the training loss
+        """
         super().__init__()
         self.logging_train_freq = logging_train_freq
         self.encoder = encoder
@@ -75,10 +86,10 @@ class VQVAE(pl.LightningModule):
         self.beta = beta
         self._opt_partial = opt
         self.mse = nn.MSELoss(reduction='none')
-        self.latent_size = latent_size
+        self.num_embeddings = num_embeddings
         self.embedding_size = embedding_size
-        self.register_parameter('w_embedding', nn.Parameter(torch.randn(latent_size, embedding_size)))
-        tg.set_dim('LS', self.latent_size)
+        self.register_parameter('w_embedding', nn.Parameter(torch.randn(num_embeddings, embedding_size)))
+        tg.set_dim('LS', self.num_embeddings)
         self.debug = debug
         tg.set_dim('ES', embedding_size)
         self.bce = nn.BCEWithLogitsLoss(reduction='none')
@@ -140,7 +151,7 @@ class VQVAE(pl.LightningModule):
     def log_metrics(self, loss_dict, forward_result: dict, dataset_split='train'):
         x = forward_result['x']
         x_recon = forward_result['x_recon']
-        self.logger.experiment.add_images(f'{dataset_split}/x', x , self.global_step)
+        self.logger.experiment.add_images(f'{dataset_split}/x', x, self.global_step)
         self.logger.experiment.add_images(f'{dataset_split}/x_recon', x_recon.sigmoid(), self.global_step)
         self.log('%s/loss' % dataset_split, loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
         self.log('%s/loss_recon' % dataset_split, loss_dict['loss_recon'], on_step=True, on_epoch=True, prog_bar=True)

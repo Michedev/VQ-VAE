@@ -12,7 +12,7 @@ VQ-VAE implementation based on _Pytorch, Pytorch Lightning, Anaconda-project and
 pip install vqvae
 ```
 
-Pip package contains only model folder only
+Note that _pip_ package contains only _model/_ folder
 
 ## Anaconda-project
 

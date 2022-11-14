@@ -1,5 +1,5 @@
 _target_: model.vqvae.VQVAE
-latent_size: 512
+num_embeddings: 512
 embedding_size: 64
 debug: false
 beta: 0.25

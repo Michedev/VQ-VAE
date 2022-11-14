@@ -2,7 +2,7 @@
 
 model:
   embedding_size: 16
-  latent_size: 128
+  num_embeddings: 128
   encoder:
     hidden_channels: 64
   decoder:
