@@ -40,4 +40,5 @@ setup(
     description='PyTorch implementation of VQ-VAE',
     dependencies=['pytorch-lightning', 'torchvision', 'torch', 'tensorguard'],
     long_description=long_description,
+    long_description_content_type='text/markdown',
 )
