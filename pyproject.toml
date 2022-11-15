@@ -9,7 +9,6 @@ requires-python = ">=3.7,<3.10"
 keywords = ["pytorch", "vq-vae", "vqvae", "vector-quantized-vae", "vector-quantized-autoencoder"]
 license = {text = "MIT"}
 readme = "readme_pip.md"
-readme-content-type = "text/markdown"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
