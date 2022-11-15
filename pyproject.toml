@@ -37,3 +37,6 @@ dynamic = ["version"]
 dev = [
     "pytest",
 ]
+
+[tool.setuptools.packages.find]
+where = ["vqvae"]
