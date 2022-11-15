@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "vqvae"
 description = "PyTorch implementation of VQ-VAE"
-requires-python = ">=3.7,<=3.10"
+requires-python = ">=3.7,<3.10"
 keywords = ["pytorch", "vq-vae", "vqvae", "vector-quantized-vae", "vector-quantized-autoencoder"]
 license = {text = "MIT"}
 classifiers = [
