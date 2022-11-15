@@ -18,7 +18,6 @@ permissions:
 
 jobs:
   deploy:
-    environment: PYPI
     runs-on: ubuntu-latest
 
     steps:
