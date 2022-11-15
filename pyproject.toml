@@ -41,3 +41,6 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["vqvae"]
+
+# for dynamic versioning
+[tool.setuptools_scm]
