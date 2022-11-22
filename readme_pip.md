@@ -1,5 +1,9 @@
 # Pytorch VQVAE implementation
+Pytorch implementation of [Neural Discrete Representation Learning (Van den Oord, 2017)](https://arxiv.org/abs/1711.00937)
 
+The model (VQVAE) is implemented as Pytorch Lightning module, hence the training step is already implemented.
+
+The model has been tested on https://github.com/Michedev/VQ-VAE
 ## Example
 
 ```python
@@ -19,5 +23,4 @@ encoder = sequential_encoder(input_channels, embedding_size, hidden_channels)  #
 decoder = sequential_decoder(embedding_size, output_channels, hidden_channels)  # Decoder from the paper
 vqvae = VQVAE(encoder, decoder, opt, beta, embedding_length, embedding_size)  # Pytorch-Lightning module, 
                                                                               # hence usable to train the model
-
 ```

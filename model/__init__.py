@@ -2,7 +2,7 @@
 from .encoder_decoder import ResModule
 from .encoder_decoder import sequential_encoder
 from .encoder_decoder import sequential_decoder
-from .vqvae import VectorQuantizer
+from .vector_quantization import VectorQuantizer
 from .vqvae import VQVAE
 
 __all__ = [ResModule, sequential_encoder, sequential_decoder, VectorQuantizer, VQVAE]
