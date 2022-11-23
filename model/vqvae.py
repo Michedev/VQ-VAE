@@ -44,16 +44,24 @@ class VQVAE(pl.LightningModule):
 
     def forward(self, x):
         encoded = self.encoder(x)
-        e, e_quantized, e_quantized_reshaped = reshape2d_quantize(encoded, self.w_embedding)
-        x_recon = self.decoder(e_quantized_reshaped)
-        return dict(x_recon=x_recon, e_quantized=e_quantized,
-                    e=e, e_quantized_reshaped=e_quantized_reshaped)
+        e_flatten, e_quantized_flatten, e_quantized = reshape2d_quantize(encoded, self.w_embedding)
+        x_hat = self.decoder(e_quantized)
+        return dict(x_hat=x_hat, e_quantized_flatten=e_quantized_flatten,
+                    e_flatten=e_flatten, e_quantized=e_quantized)
 
     def training_step(self, batch, batch_idx):
         return self._step(batch, batch_idx, dataset_split='train')
 
     def validation_step(self, batch, batch_idx):
-        return self._step(batch, batch_idx, dataset_split='valid')
+        result = self._step(batch, batch_idx, dataset_split='valid')
+
+        tg.guard(batch[0], "*, C, W, H")
+        tg.guard(self.w_embedding, "LS, ES")
+        tg.guard(result['x_hat'], "*, C, W, H")
+        tg.guard(result['e'], "*, L1, ES")
+        tg.guard(result['e_quantized_flatten'], "*, L1, ES")
+
+        return result
 
     def _print_grad(self, loss_dict):
         old_value = self.automatic_optimization
@@ -91,9 +99,9 @@ class VQVAE(pl.LightningModule):
     @torch.no_grad()
     def log_metrics(self, loss_dict, forward_result: dict, dataset_split='train'):
         x = forward_result['x']
-        x_recon = forward_result['x_recon']
+        x_recon = forward_result['x_hat']
         self.logger.experiment.add_images(f'{dataset_split}/x', x, self.global_step)
-        self.logger.experiment.add_images(f'{dataset_split}/x_recon', x_recon.sigmoid(), self.global_step)
+        self.logger.experiment.add_images(f'{dataset_split}/x_hat', x_recon.sigmoid(), self.global_step)
         self.log('%s/loss' % dataset_split, loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
         self.log('%s/loss_recon' % dataset_split, loss_dict['loss_recon'], on_step=True, on_epoch=True, prog_bar=True)
         self.log('%s/loss_vq' % dataset_split, loss_dict['loss_vq'], on_step=True, on_epoch=True, prog_bar=True)
@@ -107,16 +115,10 @@ class VQVAE(pl.LightningModule):
                 print(f'{x.mean().item()=}, {x.std().item()=}')
         forward_result = self(x)
         forward_result['x'] = x
-        x_recon = forward_result['x_recon']
-        e = forward_result['e']
-        e_quantized = forward_result['e_quantized']
-        if dataset_split == 'valid':
-            tg.guard(x, "*, C, W, H")
-            tg.guard(self.w_embedding, "LS, ES")
-            tg.guard(x_recon, "*, C, W, H")
-            tg.guard(e, "*, L1, ES")
-            tg.guard(e_quantized, "*, L1, ES")
-        loss_dict = self.calc_loss(x, x_recon, e, e_quantized)
+        x_hat = forward_result['x_hat']
+        e_flatten = forward_result['e_flatten']
+        e_quantized_flatten = forward_result['e_quantized_flatten']
+        loss_dict = self.calc_loss(x, x_hat, e_flatten, e_quantized_flatten)
         if (dataset_split == 'valid' and batch_idx < 3) or self.global_step % self.logging_train_freq == 0:
             self.log_metrics(loss_dict, forward_result, dataset_split)
         result = {**loss_dict, **forward_result}

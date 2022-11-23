@@ -66,7 +66,8 @@ def reshape2d_quantize(encoded, codebook):
     then apply vector quantization and finally reshaping it to an image.
     @param encoded:
     @param codebook:
-    @return:
+    @return: The triplet (flatten embedding, flatten quantized embedding, quantized embedding) with shapes
+    (batch_size, length, embedding_dim), (batch_size, length, embedding_dim), (batch_size, embedding_dim, height, width)
     """
     w_e, h_e = encoded.shape[2:]
     embedding_size = codebook.shape[-1]

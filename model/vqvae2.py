@@ -4,7 +4,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import Callback
 from torch import nn
 import torch
-
+import tensorguard as tg
 from callbacks.ema_embedding import EMAEmbedding
 from model.vector_quantization import reshape2d_quantize
 
@@ -69,7 +69,18 @@ class VQVAE2(pl.LightningModule):
         return self._step(batch, batch_idx, 'train')
 
     def validation_step(self, batch, batch_idx):
-        return self._step(batch, batch_idx, 'valid')
+        result = self._step(batch, batch_idx, 'valid')
+
+        tg.guard(batch[0], '*, C, H, W')
+        tg.guard(result['x_hat'], '*, C, W, H')
+        tg.guard(result['e_top_flatten'], '*, CS2, ES')
+        tg.guard(result['e_top_flatten_quantized'], '*, CS2, ES')
+        tg.guard(result['e_top_quantized'], '*, ES, W2, H2')
+        tg.guard(result['e_bottom_flatten'], '*, CS1, ES')
+        tg.guard(result['e_bottom_flatten_quantized'], '*, CS1, ES')
+        tg.guard(result['e_bottom_quantized'], '*, ES, W1, H1')
+
+        return result
 
     def _step(self, batch, batch_idx, dataset_split: str):
         x, _ = batch
@@ -83,7 +94,6 @@ class VQVAE2(pl.LightningModule):
                                   e_top_flatten_quantized, e_bottom_flatten_quantized)
         if dataset_split == 'valid' or self.global_step % self.freq_log == 0:
             self.log('valid_loss', loss)
-        self.log('train_loss', loss)  # todo: implement proper logging
         return loss
 
     def loss_function(self, x, x_hat, e_top_flatten, e_bottom_flatten,
