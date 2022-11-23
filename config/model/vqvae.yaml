@@ -1,5 +1,5 @@
 _target_: model.vqvae.VQVAE
-num_embeddings: 512
+codebook_length: 512
 embedding_size: 64
 debug: false
 beta: 0.25

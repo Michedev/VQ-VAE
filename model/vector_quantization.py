@@ -27,7 +27,7 @@ class VectorQuantizer(autograd.Function):
         True
 
         @param e: the embedding tensor with shape (batch_size, length, embedding_dim)
-        @param w_embedding: the embedding dictionary with shape (num_embeddings, embedding_dim)
+        @param w_embedding: the embedding dictionary with shape (codebook_length, embedding_dim)
 
         @return the quantized embedding with shape (batch_size, length, embedding_dim)
         """

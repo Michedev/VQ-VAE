@@ -11,14 +11,14 @@ from model.vector_quantization import reshape2d_quantize
 class VQVAE(pl.LightningModule):
 
     def __init__(self, encoder: nn.Module, decoder: nn.Module, opt: partial, beta: float = 0.25,
-                 num_embeddings: int = 512, embedding_size: int = 64, debug: bool = False,
+                 codebook_length: int = 512, embedding_size: int = 64, debug: bool = False,
                  logging_train_freq: int = 1_000):
         """
         VQ-VAE model.
-        @param encoder: The encoder network. The output shape is (batch_size, num_embeddings, w1, h1)
-        @param decoder: The decoder network. Input size is  (batch_size, num_embeddings, w1, h1)
+        @param encoder: The encoder network. The output shape is (batch_size, codebook_length, w1, h1)
+        @param decoder: The decoder network. Input size is  (batch_size, codebook_length, w1, h1)
         @param beta: Commitment loss weight
-        @param num_embeddings: Number of embedding vectors
+        @param codebook_length: Number of embedding vectors
         @param embedding_size: Size of embedding vectors
         @param opt: Partial function that returns an optimizer. Inside the object, it will be called with the parameters
         @param debug: If True, the model will print the shapes of the tensors
@@ -31,11 +31,11 @@ class VQVAE(pl.LightningModule):
         self.beta = beta
         self._opt_partial = opt
         self.mse = nn.MSELoss(reduction='none')
-        self.num_embeddings = num_embeddings
+        self.codebook_length = codebook_length
         self.embedding_size = embedding_size
-        self.w_embedding = nn.Parameter(torch.randn(num_embeddings, embedding_size))
+        self.w_embedding = nn.Parameter(torch.randn(codebook_length, embedding_size))
         self.register_parameter('w_embedding', self.w_embedding)
-        tg.set_dim('LS', self.num_embeddings)
+        tg.set_dim('LS', self.codebook_length)
         self.debug = debug
         tg.set_dim('ES', embedding_size)
         self.bce = nn.BCEWithLogitsLoss(reduction='none')
