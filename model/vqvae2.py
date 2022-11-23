@@ -90,16 +90,29 @@ class VQVAE2(pl.LightningModule):
         e_bottom_flatten = outputs['e_bottom_flatten']
         e_top_flatten_quantized = outputs['e_top_flatten_quantized']
         e_bottom_flatten_quantized = outputs['e_bottom_flatten_quantized']
-        loss = self.loss_function(x, x_hat, e_top_flatten, e_bottom_flatten,
+        loss_dict = self.loss_function(x, x_hat, e_top_flatten, e_bottom_flatten,
                                   e_top_flatten_quantized, e_bottom_flatten_quantized)
         if dataset_split == 'valid' or self.global_step % self.freq_log == 0:
-            self.log('valid_loss', loss)
-        return loss
+            self._log_metrics(dataset_split, loss_dict, x, x_hat)
+            if (dataset_split == 'valid' and batch_idx == 0) or dataset_split == 'train':
+                # log true image
+                self.logger.experiment.add_images(f'{dataset_split}/x', x, self.global_step)
+                # log the image reconstruction
+                self.logger.experiment.add_images(f'{dataset_split}/x_hat', x_hat, self.global_step)
+
+        return loss_dict
+
+    @torch.no_grad()
+    def _log_metrics(self, dataset_split, loss_dict, x, x_hat):
+        for loss_name, loss_value in loss_dict.items():
+            self.log(f'{dataset_split}/{loss_name}', loss_value, on_step=False, on_epoch=True)
 
     def loss_function(self, x, x_hat, e_top_flatten, e_bottom_flatten,
                       e_top_flatten_quantized, e_bottom_flatten_quantized):
         recon_loss = self.bce(x_hat, x).mean(dim=0).sum()
         top_loss = torch.mean((e_top_flatten - e_top_flatten_quantized.detach()) ** 2)
         bottom_loss = torch.mean((e_bottom_flatten - e_bottom_flatten_quantized.detach()) ** 2)
-        loss = recon_loss + self.beta * (top_loss + bottom_loss)
-        return loss
+        commitment_loss = self.beta * (top_loss + bottom_loss)
+        loss = recon_loss + commitment_loss
+        return dict(loss=loss, recon_loss=recon_loss, top_loss=top_loss, bottom_loss=bottom_loss,
+                    commitment_loss=commitment_loss)

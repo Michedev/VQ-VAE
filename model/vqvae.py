@@ -99,9 +99,9 @@ class VQVAE(pl.LightningModule):
     @torch.no_grad()
     def log_metrics(self, loss_dict, forward_result: dict, dataset_split='train'):
         x = forward_result['x']
-        x_recon = forward_result['x_hat']
+        x_hat = forward_result['x_hat']
         self.logger.experiment.add_images(f'{dataset_split}/x', x, self.global_step)
-        self.logger.experiment.add_images(f'{dataset_split}/x_hat', x_recon.sigmoid(), self.global_step)
+        self.logger.experiment.add_images(f'{dataset_split}/x_hat', x_hat.sigmoid(), self.global_step)
         self.log('%s/loss' % dataset_split, loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
         self.log('%s/loss_recon' % dataset_split, loss_dict['loss_recon'], on_step=True, on_epoch=True, prog_bar=True)
         self.log('%s/loss_vq' % dataset_split, loss_dict['loss_vq'], on_step=True, on_epoch=True, prog_bar=True)
