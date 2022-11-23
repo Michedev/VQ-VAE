@@ -1,0 +1,25 @@
+_target_: model.vqvae2.VQVAE2
+codebook_length: 512
+embedding_size: 64
+beta: 0.25
+freq_log: 1_000
+encoder_bottom:
+  _target_: model.encoder_decoder.sequential_encoder
+  input_channels: ${dataset.channels}
+  output_channels: ${model.embedding_size}
+  downsample_blocks: 2
+encoder_top:
+  _target_: model.encoder_decoder.sequential_encoder
+  input_channels: ${model.embedding_size}
+  output_channels: ${model.embedding_size}
+  downsample_blocks: 1
+decoder_bottom:
+  _target_: model.encoder_decoder.sequential_decoder
+  input_channels: ${model.embedding_size}
+  output_channels: ${model.embedding_size}
+  upsample_blocks: 1
+decoder_top:
+  _target_: model.encoder_decoder.sequential_decoder
+  input_channels: ${prod:${model.embedding_size},2}
+  output_channels: ${dataset.channels}
+  upsample_blocks: 1

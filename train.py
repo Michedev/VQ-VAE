@@ -10,6 +10,7 @@ import omegaconf
 import os
 from utils.paths import CODE_MODEL, ROOT
 
+omegaconf.OmegaConf.register_new_resolver("prod", lambda x, y: x * y)
 
 @hydra.main(ROOT / 'config', 'train.yaml')
 def train(config: DictConfig):
