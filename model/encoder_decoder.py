@@ -45,6 +45,7 @@ def sequential_encoder(input_channels: int, output_channels: int, hidden_channel
             nn.GroupNorm(1, hidden_channels),
             nn.ReLU(),
         ]
+        input_channels = hidden_channels
     for _ in range(res_blocks):
         encoder.append(ResModule(hidden_channels, hidden_channels))
     encoder.append(nn.Conv2d(hidden_channels, output_channels, 1))
@@ -76,6 +77,7 @@ def sequential_decoder(input_channels: int, output_channels: int, hidden_channel
             nn.GroupNorm(1, hidden_channels),
             nn.ReLU(),
         ]
+        input_channels = hidden_channels
     decoder.append(nn.Conv2d(hidden_channels, output_channels, 1))
 
     decoder: nn.Module = nn.Sequential(*decoder)
