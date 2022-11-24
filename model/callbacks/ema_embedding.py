@@ -45,4 +45,4 @@ class EMAEmbedding(Callback):
         self.m_i = self.decay * self.m_i + (1 - self.decay) * sum_e_i
         N_i_fixed = torch.maximum(self.N_i.unsqueeze(-1), torch.tensor([1.0], device=e_x.device))
         new_codebook = self.m_i / N_i_fixed
-        setattr(vqvae, self.codebook_key, torch.nn.Parameter(new_codebook))
+        setattr(vqvae, self.codebook_key, new_codebook)
