@@ -5,7 +5,7 @@ import tensorguard as tg
 import torch
 from torch import nn
 
-from model.vector_quantization import reshape2d_quantize
+from .vector_quantization import reshape2d_quantize
 
 
 class VQVAE(pl.LightningModule):
