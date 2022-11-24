@@ -15,7 +15,7 @@ class EMAEmbedding(Callback):
         self.ema_w_embedding = None
         self.N_i = None
         self.m_i = None
-        self.suffix = None
+        self.suffix = suffix
         self.embedding_key = 'e'
         self.codebook_key = 'codebook'
         if self.suffix is not None:
