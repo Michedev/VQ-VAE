@@ -5,6 +5,8 @@ from pytorch_lightning import Callback
 from torch import nn
 import torch
 import tensorguard as tg
+from torch.optim import Adam
+
 from .callbacks.ema_embedding import EMAEmbedding
 from .vector_quantization import reshape2d_quantize
 
@@ -127,3 +129,6 @@ class VQVAE2(pl.LightningModule):
         loss = recon_loss + commitment_loss
         return dict(loss=loss, recon_loss=recon_loss, top_loss=top_loss, bottom_loss=bottom_loss,
                     commitment_loss=commitment_loss)
+
+    def configure_optimizers(self) -> Any:
+        return Adam(self.parameters(), lr=2e-4)  # todo: move into config
