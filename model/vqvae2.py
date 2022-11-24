@@ -38,8 +38,11 @@ class VQVAE2(pl.LightningModule):
         self.beta = beta
 
         self.conv_merge_top_bottom = nn.Conv2d(2 * embedding_size, embedding_size, kernel_size=1)
-        self.codebook_top = (torch.zeros(codebook_length, embedding_size))
-        self.codebook_bottom = (torch.zeros(codebook_length, embedding_size))
+        codebook_top = (torch.zeros(codebook_length, embedding_size))
+        codebook_bottom = (torch.zeros(codebook_length, embedding_size))
+        self.register_buffer('codebook_top', codebook_top)
+        self.register_buffer('codebook_bottom', codebook_bottom)
+
         self.bce = nn.BCEWithLogitsLoss(reduction='none')
         with torch.no_grad():
             nn.init.xavier_normal_(self.codebook_top)
