@@ -21,5 +21,5 @@ decoder_top:
 decoder_bottom:
   _target_: model.encoder_decoder.sequential_decoder
   input_channels: ${model.embedding_size}
-  output_channels: ${model.channels}
+  output_channels: ${dataset.channels}
   upsample_blocks: 2
