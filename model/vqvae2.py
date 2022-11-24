@@ -63,7 +63,9 @@ class VQVAE2(pl.LightningModule):
         # Quantize the top embedding
         e_top_flatten, e_top_flatten_quantized, e_top_quantized = reshape2d_quantize(e_top, self.top_codebook)
         # Upsample the top embedding by a factor of 2
-        e_top_quantized_upsampled = self.decoder_bottom(e_top_quantized)
+        e_top_quantized_upsampled = self.decoder_top(e_top_quantized)
+        tg.guard(e_bottom, "*, ES, WB, HB")
+        tg.guard(e_top_quantized_upsampled, "*, ES, WB, HB")
         # Concatenate the bottom embedding and the upsampled top embedding
         e_bottom = torch.cat([e_bottom, e_top_quantized_upsampled], dim=1)
         # Apply a 1x1 convolution to merge the two embeddings and to return at embedding_size channels
