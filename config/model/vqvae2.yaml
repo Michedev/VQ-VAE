@@ -13,13 +13,13 @@ encoder_top:
   input_channels: ${model.embedding_size}
   output_channels: ${model.embedding_size}
   downsample_blocks: 1
-decoder_bottom:
+decoder_top:
   _target_: model.encoder_decoder.sequential_decoder
   input_channels: ${model.embedding_size}
   output_channels: ${model.embedding_size}
   upsample_blocks: 1
-decoder_top:
+decoder_bottom:
   _target_: model.encoder_decoder.sequential_decoder
-  input_channels: ${prod:${model.embedding_size},2}
-  output_channels: ${dataset.channels}
-  upsample_blocks: 1
+  input_channels: ${model.embedding_size}
+  output_channels: ${model.channels}
+  upsample_blocks: 2
