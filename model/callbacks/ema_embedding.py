@@ -34,7 +34,7 @@ class EMAEmbedding(Callback):
         i_min = torch.argmin(dist, dim=-1)  # bs, L1
         n_i = torch.zeros(codebook.shape[0], device=e_x.device)  # L2
         i_flatten = i_min.view(-1)
-        n_i.index_add_(dim=0, index=i_flatten, source=torch.ones_like(i_flatten))
+        n_i.index_add_(dim=0, index=i_flatten, source=torch.ones_like(i_flatten, dtype=torch.float))
         sum_e_i = torch.zeros_like(codebook)  # L2, ES
         sum_e_i.index_add_(dim=0, index=i_flatten, source=e_x.view(-1, vqvae.embedding_size))
         if self.N_i is None:
