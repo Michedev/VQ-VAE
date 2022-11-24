@@ -32,7 +32,7 @@ class EMAEmbedding(Callback):
         codebook = getattr(vqvae, self.codebook_key)  # L2, ES
         dist = torch.cdist(e_x, codebook)
         i_min = torch.argmin(dist, dim=-1)  # bs, L1
-        n_i = torch.zeros(codebook.shape[0])  # L2
+        n_i = torch.zeros(codebook.shape[0], device=e_x.device)  # L2
         i_flatten = i_min.view(-1)
         n_i.index_add_(dim=0, index=i_flatten, source=torch.ones_like(i_flatten))
         sum_e_i = torch.zeros_like(codebook)  # L2, ES
