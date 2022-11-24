@@ -16,7 +16,7 @@ class VectorQuantizer(autograd.Function):
         >>> result = VectorQuantizer.apply(e, w)
         >>> result.shape
         torch.Size([32, 15, 3])
-        >>> (result.sum().item() == 6 * 15 * 32)
+        >>> (result.sum().item() == 6 * 15 * 32)  # i.e. always closer to the first vector [1, 2, 3]
         True
         >>> e = torch.zeros(2, 4, 3)
         >>> e[1] += 5

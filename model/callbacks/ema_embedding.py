@@ -21,7 +21,7 @@ class EMAEmbedding(Callback):
         if self.suffix is not None:
             self.embedding_key += f'_{suffix}'
             self.codebook_key += f'_{suffix}'
-
+        self.codebook_key += '_flatten'  # un-flattened version has image-size shape
 
     @torch.no_grad()
     def on_train_batch_end(
@@ -29,7 +29,7 @@ class EMAEmbedding(Callback):
             outputs: dict, batch: tuple, batch_idx: int
     ) -> None:
         e_x = outputs[self.embedding_key]  # bs, L1, ES
-        codebook = getattr(vqvae, self.codebook_key)
+        codebook = getattr(vqvae, self.codebook_key)  # L2, ES
         dist = torch.cdist(e_x, codebook)
         i_min = torch.argmin(dist, dim=-1)  # bs, L1
         n_i = torch.zeros(codebook.shape[0])  # L2
