@@ -14,6 +14,7 @@ min_delta: 0.0  # minimum change in the monitored quantity to qualify as an impr
 ckpt: null  # path to checkpoint
 seed: 1337  # random seed
 steps: 250_000 # training steps
+save_val_batch: true
 
 hydra:
   run:
