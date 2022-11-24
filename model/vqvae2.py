@@ -115,7 +115,7 @@ class VQVAE2(pl.LightningModule):
                 # log the image reconstruction
                 self.logger.experiment.add_images(f'{dataset_split}/x_hat', x_hat, self.global_step)
 
-        return loss_dict
+        return dict(**loss_dict, **outputs)
 
     @torch.no_grad()
     def _log_metrics(self, dataset_split, loss_dict, x, x_hat):
