@@ -23,3 +23,4 @@ decoder_bottom:
   input_channels: ${model.embedding_size}
   output_channels: ${dataset.channels}
   upsample_blocks: 2
+  ksize_last: 2

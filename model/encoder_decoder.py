@@ -57,7 +57,7 @@ def sequential_encoder(input_channels: int, output_channels: int, hidden_channel
 
 
 def sequential_decoder(input_channels: int, output_channels: int, hidden_channels=256,
-                       upsample_blocks: int = 2, res_blocks: int = 2):
+                       upsample_blocks: int = 2, res_blocks: int = 2, ksize_last: int = 1):
     """
     The decoder consists of two residual 3 × 3 blocks, followed by two strided convolutional layers with stride 2 and
     window size 4 × 4, all having 256 hidden units.
@@ -78,7 +78,7 @@ def sequential_decoder(input_channels: int, output_channels: int, hidden_channel
             nn.ReLU(),
         ]
         input_channels = hidden_channels
-    decoder.append(nn.Conv2d(hidden_channels, output_channels, 1))
+    decoder.append(nn.Conv2d(hidden_channels, output_channels, ksize_last))
 
     decoder: nn.Module = nn.Sequential(*decoder)
     decoder.input_channels = input_channels
