@@ -34,6 +34,7 @@ class VQVAE2(pl.LightningModule):
         self.encoder_top = encoder_top
         self.decoder_bottom = decoder_bottom
         self.decoder_top = decoder_top
+        self.embedding_size = embedding_size
         self.beta = beta
 
         self.conv_merge_top_bottom = nn.Conv2d(2 * embedding_size, embedding_size, kernel_size=1)
