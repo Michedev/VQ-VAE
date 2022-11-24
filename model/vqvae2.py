@@ -37,17 +37,18 @@ class VQVAE2(pl.LightningModule):
         self.beta = beta
 
         self.conv_merge_top_bottom = nn.Conv2d(2 * embedding_size, embedding_size, kernel_size=1)
-        self.top_codebook = nn.Parameter(torch.zeros(codebook_length, embedding_size))
-        self.bottom_codebook = nn.Parameter(torch.zeros(codebook_length, embedding_size))
-        self.register_parameter('top_codebook', self.top_codebook)
-        self.register_parameter('bottom_codebook', self.bottom_codebook)
+        self.codebook_top = nn.Parameter(torch.zeros(codebook_length, embedding_size))
+        self.codebook_bottom = nn.Parameter(torch.zeros(codebook_length, embedding_size))
+        self.register_parameter('codebook_top', self.codebook_top)
+        self.register_parameter('codebook_bottom', self.codebook_bottom)
         self.bce = nn.BCEWithLogitsLoss(reduction='none')
         with torch.no_grad():
-            nn.init.xavier_normal_(self.top_codebook)
-            nn.init.xavier_normal_(self.bottom_codebook)
+            nn.init.xavier_normal_(self.codebook_top)
+            nn.init.xavier_normal_(self.codebook_bottom)
 
     def configure_callbacks(self) -> Union[Sequence[Callback], Callback]:
-        return EMAEmbedding()
+        return [EMAEmbedding(suffix='top'),
+                EMAEmbedding(suffix='bottom')]
 
     def encode(self, x: torch.Tensor):
         e_bottom = self.encoder_bottom(x)
@@ -61,7 +62,7 @@ class VQVAE2(pl.LightningModule):
 
     def decode(self, e_bottom, e_top) -> dict:
         # Quantize the top embedding
-        e_top_flatten, e_top_flatten_quantized, e_top_quantized = reshape2d_quantize(e_top, self.top_codebook)
+        e_top_flatten, e_top_flatten_quantized, e_top_quantized = reshape2d_quantize(e_top, self.codebook_top)
         # Upsample the top embedding by a factor of 2
         e_top_quantized_upsampled = self.decoder_top(e_top_quantized)
         tg.guard(e_bottom, "*, ES, WB, HB")
@@ -72,7 +73,7 @@ class VQVAE2(pl.LightningModule):
         e_bottom = self.conv_merge_top_bottom(e_bottom)
         # Quantize the merged embedding
         e_bottom_flatten, e_bottom_flatten_quantized, e_bottom_quantized = \
-            reshape2d_quantize(e_bottom, self.bottom_codebook)
+            reshape2d_quantize(e_bottom, self.codebook_bottom)
         # Decode the merged embedding
         x_hat = self.decoder_bottom(e_bottom_quantized)
         return dict(e_bottom_flatten=e_bottom_flatten, e_bottom_flatten_quantized=e_bottom_flatten_quantized,
