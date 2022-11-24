@@ -130,5 +130,5 @@ class VQVAE2(pl.LightningModule):
         return dict(loss=loss, recon_loss=recon_loss, top_loss=top_loss, bottom_loss=bottom_loss,
                     commitment_loss=commitment_loss)
 
-    def configure_optimizers(self) -> Any:
+    def configure_optimizers(self):
         return Adam(self.parameters(), lr=2e-4)  # todo: move into config
