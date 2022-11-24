@@ -21,7 +21,7 @@ class StoreFirstValBatch(pl.Callback):
             self.store_batch(batch, outputs)
 
     def store_batch(self, batch, outputs):
-        assert isinstance(batch, tuple), f'{batch =}'
+        assert isinstance(batch, (tuple, list)), f'{type(batch)}'
         x = batch[0]
         x_hat = outputs['x_hat'].sigmoid()
         bs = x.shape[0]
