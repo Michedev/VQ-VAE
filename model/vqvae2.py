@@ -122,7 +122,7 @@ class VQVAE2(pl.LightningModule):
     @torch.no_grad()
     def _log_metrics(self, dataset_split, loss_dict, x, x_hat):
         for loss_name, loss_value in loss_dict.items():
-            self.log(f'{dataset_split}/{loss_name}', loss_value, on_step=False, on_epoch=True)
+            self.log(f'{dataset_split}/{loss_name}', loss_value, on_step=True, on_epoch=True)
 
     def loss_function(self, x, x_hat, e_top_flatten, e_bottom_flatten,
                       e_top_flatten_quantized, e_bottom_flatten_quantized):
