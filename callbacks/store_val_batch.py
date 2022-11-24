@@ -21,6 +21,7 @@ class StoreFirstValBatch(pl.Callback):
             self.store_batch(batch, outputs)
 
     def store_batch(self, batch, outputs):
+        assert isinstance(batch, tuple), f'{batch =}'
         x = batch[0]
         x_hat = outputs['x_hat'].sigmoid()
         bs = x.shape[0]
@@ -31,5 +32,6 @@ class StoreFirstValBatch(pl.Callback):
         x = x[:self.batch_size]
         x_hat = x_hat[:self.batch_size]
         # make grid
-        grid_x_xhat = torchvision.utils.make_grid([x, x_hat], nrow=self.batch_size // 2)
+        x_xhat = torch.stack([x, x_hat], dim=1).flatten(0, 1)
+        grid_x_xhat = torchvision.utils.make_grid(x_xhat, nrow=self.batch_size // 2)
         torchvision.utils.save_image(grid_x_xhat, 'val_true_recon_batch.png')
