@@ -111,7 +111,7 @@ class VQVAE2(pl.LightningModule):
         loss_dict = self.loss_function(x, x_hat_logit, e_top_flatten, e_bottom_flatten,
                                        e_top_flatten_quantized, e_bottom_flatten_quantized)
         if dataset_split == 'valid' or self.global_step % self.freq_log == 0:
-            self._log_metrics(dataset_split, loss_dict, x, x_hat_logit)
+            self._log_metrics(dataset_split, loss_dict)
             if (dataset_split == 'valid' and batch_idx == 0) or dataset_split == 'train':
                 # log true image
                 self.logger.experiment.add_images(f'{dataset_split}/x', x, self.global_step)
