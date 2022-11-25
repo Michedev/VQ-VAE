@@ -80,7 +80,7 @@ class VQVAE2(pl.LightningModule):
         x_hat = self.decoder_bottom(e_bottom_quantized)
         return dict(e_bottom_flatten=e_bottom_flatten, e_bottom_flatten_quantized=e_bottom_flatten_quantized,
                     e_bottom_quantized=e_bottom_quantized, e_top_flatten=e_top_flatten,
-                    e_top_flatten_quantized=e_top_flatten_quantized, e_top_quantized=e_top_quantized, x_hat=x_hat)
+                    e_top_flatten_quantized=e_top_flatten_quantized, e_top_quantized=e_top_quantized, x_hat_logit=x_hat)
 
     def training_step(self, batch, batch_idx):
         return self._step(batch, batch_idx, 'train')
@@ -90,7 +90,7 @@ class VQVAE2(pl.LightningModule):
 
         result = self._step(batch, batch_idx, 'valid')
 
-        tg.guard(result['x_hat'], '*, C, W, H')
+        tg.guard(result['x_hat_logit'], '*, C, W, H')
         tg.guard(result['e_top_flatten'], '*, CS2, ES')
         tg.guard(result['e_top_flatten_quantized'], '*, CS2, ES')
         tg.guard(result['e_top_quantized'], '*, ES, W2, H2')
@@ -103,25 +103,25 @@ class VQVAE2(pl.LightningModule):
     def _step(self, batch, batch_idx, dataset_split: str):
         x, _ = batch
         outputs = self(x)
-        x_hat = outputs['x_hat']
+        x_hat_logit = outputs['x_hat_logit']
         e_top_flatten = outputs['e_top_flatten']
         e_bottom_flatten = outputs['e_bottom_flatten']
         e_top_flatten_quantized = outputs['e_top_flatten_quantized']
         e_bottom_flatten_quantized = outputs['e_bottom_flatten_quantized']
-        loss_dict = self.loss_function(x, x_hat, e_top_flatten, e_bottom_flatten,
+        loss_dict = self.loss_function(x, x_hat_logit, e_top_flatten, e_bottom_flatten,
                                        e_top_flatten_quantized, e_bottom_flatten_quantized)
         if dataset_split == 'valid' or self.global_step % self.freq_log == 0:
-            self._log_metrics(dataset_split, loss_dict, x, x_hat)
+            self._log_metrics(dataset_split, loss_dict, x, x_hat_logit)
             if (dataset_split == 'valid' and batch_idx == 0) or dataset_split == 'train':
                 # log true image
                 self.logger.experiment.add_images(f'{dataset_split}/x', x, self.global_step)
                 # log the image reconstruction
-                self.logger.experiment.add_images(f'{dataset_split}/x_hat', x_hat, self.global_step)
+                self.logger.experiment.add_images(f'{dataset_split}/x_hat', x_hat_logit.sigmoid(), self.global_step)
 
         return dict(**loss_dict, **outputs)
 
     @torch.no_grad()
-    def _log_metrics(self, dataset_split, loss_dict, x, x_hat):
+    def _log_metrics(self, dataset_split, loss_dict):
         for loss_name, loss_value in loss_dict.items():
             self.log(f'{dataset_split}/{loss_name}', loss_value, on_step=True, on_epoch=True)
 

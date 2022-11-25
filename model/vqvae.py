@@ -57,7 +57,7 @@ class VQVAE(pl.LightningModule):
 
         tg.guard(batch[0], "*, C, W, H")
         tg.guard(self.w_embedding, "LS, ES")
-        tg.guard(result['x_hat'], "*, C, W, H")
+        tg.guard(result['x_hat_logit'], "*, C, W, H")
         tg.guard(result['e'], "*, L1, ES")
         tg.guard(result['e_quantized_flatten'], "*, L1, ES")
 
@@ -99,7 +99,7 @@ class VQVAE(pl.LightningModule):
     @torch.no_grad()
     def log_metrics(self, loss_dict, forward_result: dict, dataset_split='train'):
         x = forward_result['x']
-        x_hat = forward_result['x_hat']
+        x_hat = forward_result['x_hat_logit']
         self.logger.experiment.add_images(f'{dataset_split}/x', x, self.global_step)
         self.logger.experiment.add_images(f'{dataset_split}/x_hat', x_hat.sigmoid(), self.global_step)
         self.log('%s/loss' % dataset_split, loss_dict['loss'], on_step=True, on_epoch=True, prog_bar=False)
@@ -115,7 +115,7 @@ class VQVAE(pl.LightningModule):
                 print(f'{x.mean().item()=}, {x.std().item()=}')
         forward_result = self(x)
         forward_result['x'] = x
-        x_hat = forward_result['x_hat']
+        x_hat = forward_result['x_hat_logit']
         e_flatten = forward_result['e_flatten']
         e_quantized_flatten = forward_result['e_quantized_flatten']
         loss_dict = self.calc_loss(x, x_hat, e_flatten, e_quantized_flatten)

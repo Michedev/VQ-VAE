@@ -23,7 +23,7 @@ class StoreFirstValBatch(pl.Callback):
     def store_batch(self, batch, outputs):
         assert isinstance(batch, (tuple, list)), f'{type(batch)}'
         x = batch[0]
-        x_hat = outputs['x_hat'].sigmoid()
+        x_hat = outputs['x_hat_logit'].sigmoid()
         bs = x.shape[0]
         if self.batch_size > bs:
             print(
