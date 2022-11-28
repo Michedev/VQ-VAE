@@ -5,6 +5,7 @@ from omegaconf import DictConfig, OmegaConf
 import pytorch_lightning as pl
 import hydra
 
+
 def iter_experiments() -> Iterator[Tuple[Path, DictConfig]]:
     for experiment in SAVED_MODELS.dirs():
         config_path = experiment / 'config.yaml'
@@ -16,3 +17,4 @@ def iter_experiments_with_checkpoint() -> Iterator[Tuple[Path, DictConfig, pl.Li
     for experiment_path, config in iter_experiments():
         model = hydra.utils.instantiate(config.model)
         model.load_from_checkpoint(experiment_path / 'best.ckpt')
+        yield experiment_path, config, model

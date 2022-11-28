@@ -1,4 +1,4 @@
-from . import VQVAE, sequential_encoder, sequential_decoder
+from model import VQVAE, sequential_encoder, sequential_decoder
 from torch.optim import Adam
 from functools import partial
 import torch

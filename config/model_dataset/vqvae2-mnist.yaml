@@ -1,0 +1,13 @@
+# @package _global_
+
+model:
+  embedding_size: 16
+  codebook_length: 128
+  encoder_top:
+    hidden_channels: 64
+  decoder_top:
+    hidden_channels: 64
+  encoder_bottom:
+    hidden_channels: 64
+  decoder_bottom:
+    hidden_channels: 64

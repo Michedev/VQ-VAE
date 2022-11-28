@@ -8,8 +8,11 @@ from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
 import omegaconf
 import os
+
+from callbacks.store_val_batch import StoreFirstValBatch
 from utils.paths import CODE_MODEL, ROOT
 
+omegaconf.OmegaConf.register_new_resolver("prod", lambda x, y: x * y)
 
 @hydra.main(ROOT / 'config', 'train.yaml')
 def train(config: DictConfig):
@@ -41,6 +44,8 @@ def train(config: DictConfig):
     if config.early_stop:
         callbacks.append(EarlyStopping('valid/loss_epoch', min_delta=config.min_delta,
                                        patience=config.patience))
+    if config.save_val_batch:
+        callbacks.append(StoreFirstValBatch())
 
     epochs = config.steps // len(train_dl) if config.steps else None
 

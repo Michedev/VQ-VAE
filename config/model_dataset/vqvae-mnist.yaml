@@ -2,7 +2,7 @@
 
 model:
   embedding_size: 16
-  num_embeddings: 128
+  codebook_length: 128
   encoder:
     hidden_channels: 64
   decoder:
