@@ -39,13 +39,14 @@ _Note: First time will download and install all dependencies_
 You can also specify additional arguments according to `config/train.yaml` like
 
 ```bash
-anaconda-project run train accelerator=cpu  # train on cpu
+anaconda-project run train-cpu  # train on cpu
 ```
 
 
 ## Project structure
 
-    ├── data  # Data folder
+    ├── data  # Data storage folder
+    ├── callbacks  # train/test callbacks
     ├── config
     │   ├── dataset  # Dataset config
     │   ├── model  # Model config
@@ -54,6 +55,7 @@ anaconda-project run train accelerator=cpu  # train on cpu
     │   └── train.yaml  # training configuration
     ├── dataset  # Dataset definition
     ├── model  # Model definition
+    │   └── callbacks  # model callbacks
     ├── utils
     │   ├── experiment_tools.py # Iterate over experiments
     │   └── paths.py  # common paths
@@ -64,7 +66,7 @@ anaconda-project run train accelerator=cpu  # train on cpu
     └── readme.md  # This file
 
 ### Design keypoints
-- root folder (_deep_learning_template/_) should contain only entrypoint
+- root folder should contain only entrypoints and folders
 - Add tasks to anaconda-project.yml via the command `anaconda-project add-command`
 
 
